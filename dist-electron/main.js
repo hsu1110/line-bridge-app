@@ -11706,14 +11706,7 @@ var _eval = EvalError;
 var range = RangeError;
 var ref = ReferenceError;
 var syntax = SyntaxError;
-var type;
-var hasRequiredType;
-function requireType() {
-  if (hasRequiredType) return type;
-  hasRequiredType = 1;
-  type = TypeError;
-  return type;
-}
+var type = TypeError;
 var uri = URIError;
 var abs$1 = Math.abs;
 var floor$1 = Math.floor;
@@ -11959,7 +11952,7 @@ function requireCallBindApplyHelpers() {
   if (hasRequiredCallBindApplyHelpers) return callBindApplyHelpers;
   hasRequiredCallBindApplyHelpers = 1;
   var bind3 = functionBind;
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var $call2 = requireFunctionCall();
   var $actualApply = requireActualApply();
   callBindApplyHelpers = function callBindBasic(args) {
@@ -12032,7 +12025,7 @@ var $EvalError = _eval;
 var $RangeError = range;
 var $ReferenceError = ref;
 var $SyntaxError = syntax;
-var $TypeError$1 = requireType();
+var $TypeError$1 = type;
 var $URIError = uri;
 var abs = abs$1;
 var floor = floor$1;
@@ -12363,7 +12356,7 @@ var GetIntrinsic2 = getIntrinsic;
 var $defineProperty = GetIntrinsic2("%Object.defineProperty%", true);
 var hasToStringTag = requireShams()();
 var hasOwn$1 = hasown;
-var $TypeError = requireType();
+var $TypeError = type;
 var toStringTag = hasToStringTag ? Symbol.toStringTag : null;
 var esSetTostringtag = function setToStringTag(object, value) {
   var overrideIfSet = arguments.length > 2 && !!arguments[2] && arguments[2].force;
@@ -52955,7 +52948,7 @@ function requireSideChannelList() {
   if (hasRequiredSideChannelList) return sideChannelList;
   hasRequiredSideChannelList = 1;
   var inspect = requireObjectInspect();
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var listGetNode = function(list, key, isDelete) {
     var prev = list;
     var curr;
@@ -53074,7 +53067,7 @@ function requireSideChannelMap() {
   var GetIntrinsic3 = getIntrinsic;
   var callBound2 = requireCallBound();
   var inspect = requireObjectInspect();
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var $Map = GetIntrinsic3("%Map%", true);
   var $mapGet = callBound2("Map.prototype.get", true);
   var $mapSet = callBound2("Map.prototype.set", true);
@@ -53131,7 +53124,7 @@ function requireSideChannelWeakmap() {
   var callBound2 = requireCallBound();
   var inspect = requireObjectInspect();
   var getSideChannelMap = requireSideChannelMap();
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var $WeakMap = GetIntrinsic3("%WeakMap%", true);
   var $weakMapGet = callBound2("WeakMap.prototype.get", true);
   var $weakMapSet = callBound2("WeakMap.prototype.set", true);
@@ -53200,7 +53193,7 @@ var hasRequiredSideChannel;
 function requireSideChannel() {
   if (hasRequiredSideChannel) return sideChannel;
   hasRequiredSideChannel = 1;
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var inspect = requireObjectInspect();
   var getSideChannelList = requireSideChannelList();
   var getSideChannelMap = requireSideChannelMap();
@@ -95106,7 +95099,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$4.join(process.env.APP_ROOT
 let win;
 function createWindow() {
   win = new BrowserWindow({
-    icon: path$4.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    icon: path$4.join(process.env.VITE_PUBLIC, "LINE_New_App_Icon.png"),
     webPreferences: {
       preload: path$4.join(__dirname$1, "preload.mjs")
     }

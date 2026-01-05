@@ -109,3 +109,129 @@ npm run dev
 # 打包應用程式
 npm run build
 ```
+
+---
+
+# API 使用指南 (API Usage Guide)
+
+本指南說明如何從**其他電腦** (External Client) 呼叫 LINE Message Bridge 的 API 來發送訊息。
+
+## 1. 基本資訊 (Basic Info)
+
+*   **API URL**: `http://<Server_IP>:<Port>/api/send`
+    *   `<Server_IP>`: 請填入安裝 LINE Message Bridge 那台電腦的 IP (例如 `192.168.1.100`)。
+    *   `<Port>`: 預設為 `3000` (可在設定中修改)。
+*   **Method**: `POST`
+*   **Content-Type**: `application/json`
+
+## 2. 認證 (Authentication)
+
+如果在設定中啟用了 **API Key**，請在 Header 加入：
+
+*   **Header Name**: `x-api-key`
+*   **Value**: `[您的 API Key]`
+
+## 3. 請求格式 (Request Body)
+
+您可以選擇「直接發送文字」或「使用模板發送」。
+
+### 3.1 直接發送文字 (Direct Message)
+
+最簡單的方式，直接指定對象代碼 (target_code) 和訊息內容 (message)。
+
+```json
+{
+  "target_code": "IT_DEPT",
+  "message": "系統警告：伺服器 CPU 使用率過高！"
+}
+```
+
+*   `target_code`: 在通訊錄中設定的代碼 (Code)。
+*   `message`: 要發送的文字內容。
+
+### 3.2 使用模板發送 (Template Message)
+
+使用預先定義好的模板，並帶入變數。
+
+```json
+{
+  "target_code": "IT_DEPT",
+  "template_code": "SERVER_ALERT",
+  "params": {
+    "server": "Web-01",
+    "status": "Down",
+    "time": "2024-01-01 12:00:00"
+  }
+}
+```
+
+*   `template_code`: 在模板管理中設定的代碼。
+*   `params`: 對應模板內容中的變數 (例如 `{{server}}`)。
+
+## 4. 範例程式碼 (Code Examples)
+
+### PowerShell (Windows)
+
+```powershell
+$url = "http://192.168.15.83:3000/api/send"
+$headers = @{
+    "Content-Type" = "application/json"
+    "x-api-key" = "ITTEST123456"
+}
+$body = @{
+    target_code = "IT_ALERT"
+    message = "Hello from PowerShell!"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
+
+### PowerShell (Windows) - Template Example
+
+```powershell
+$url = "http://192.168.15.83:3000/api/send"
+$headers = @{
+    "Content-Type" = "application/json"
+    "x-api-key" = "ITTEST123456"
+}
+$body = @{
+    target_code = "IT_ALERT"
+    template_code = "MACHINE_ERROR"
+    params = @{
+        machine_id = "M001"
+        error_code = "ERROR001"
+    }
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
+```
+```
+
+### Python
+
+```python
+import requests
+import json
+
+url = "http://192.168.1.100:3000/api/send"
+headers = {
+    "Content-Type": "application/json",
+    "x-api-key": "your-secret-key"
+}
+data = {
+    "target_code": "IT_DEPT",
+    "message": "Hello from Python!"
+}
+
+response = requests.post(url, headers=headers, json=data)
+print(response.json())
+```
+
+### cURL (Linux/Mac)
+
+```bash
+curl -X POST http://192.168.1.100:3000/api/send \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-secret-key" \
+  -d '{"target_code": "IT_DEPT", "message": "Hello from cURL!"}'
+```
+
