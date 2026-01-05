@@ -1,0 +1,154 @@
+/* Tech/Sci-Fi Theme Variables */
+:root {
+  --tech-bg-dark: #050a14;
+  --tech-bg-panel: rgba(16, 33, 60, 0.6);
+  --tech-primary: #06c755; /* LINE Green */
+  --tech-primary-dim: rgba(6, 199, 85, 0.1);
+  --tech-secondary: #05b34c; /* Darker Green */
+  --tech-alert: #ff0055;
+  --tech-text-main: #e0f0ff;
+  --tech-text-dim: #8aa0b0;
+  --tech-border: rgba(6, 199, 85, 0.3);
+  --tech-glow: 0 0 10px rgba(6, 199, 85, 0.5);
+
+  /* Element Plus Overrides */
+  --el-color-primary: var(--tech-primary);
+  --el-bg-color: var(--tech-bg-dark);
+  --el-bg-color-overlay: #0a1525;
+  --el-text-color-primary: var(--tech-text-main);
+  --el-text-color-regular: var(--tech-text-main);
+  --el-border-color: var(--tech-border);
+  --el-border-color-light: rgba(0, 243, 255, 0.1);
+  --el-fill-color-blank: transparent;
+}
+
+body {
+  background-color: var(--tech-bg-dark);
+  color: var(--tech-text-main);
+  font-family: "Inter", "Roboto", sans-serif;
+  margin: 0;
+  overflow: hidden; /* App-like feel */
+  background-image: linear-gradient(
+      rgba(0, 243, 255, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--tech-bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--tech-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tech-primary);
+  box-shadow: var(--tech-glow);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--tech-bg-panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--tech-border);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+}
+
+/* Element Plus Component Overrides */
+.el-button--primary {
+  background: transparent !important;
+  border: 1px solid var(--tech-primary) !important;
+  color: var(--tech-primary) !important;
+  box-shadow: 0 0 5px var(--tech-primary-dim);
+  transition: all 0.3s ease;
+}
+.el-button--primary:hover {
+  background: var(--tech-primary) !important;
+  color: #000 !important;
+  box-shadow: var(--tech-glow);
+}
+
+.el-button--success {
+  border-color: var(--tech-secondary) !important;
+  color: var(--tech-secondary) !important;
+  background: transparent !important;
+}
+.el-button--success:hover {
+  background: var(--tech-secondary) !important;
+  color: #000 !important;
+  box-shadow: 0 0 10px var(--tech-secondary);
+}
+
+.el-button--danger {
+  border-color: var(--tech-alert) !important;
+  color: var(--tech-alert) !important;
+  background: transparent !important;
+}
+.el-button--danger:hover {
+  background: var(--tech-alert) !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px var(--tech-alert);
+}
+
+.el-table {
+  background: transparent !important;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(0, 243, 255, 0.05);
+  --el-table-row-hover-bg-color: rgba(0, 243, 255, 0.1);
+  --el-table-border-color: var(--tech-border);
+  color: var(--tech-text-main);
+}
+.el-table th,
+.el-table tr,
+.el-table td {
+  background: transparent !important;
+  border-bottom: 1px solid var(--el-border-color-light) !important;
+}
+
+.el-dialog {
+  background: rgba(10, 20, 35, 0.95) !important;
+  border: 1px solid var(--tech-primary);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.2) !important;
+}
+.el-dialog__title {
+  color: var(--tech-primary) !important;
+  text-shadow: 0 0 5px var(--tech-primary);
+}
+
+.el-input__wrapper,
+.el-textarea__inner {
+  background: rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 0 0 1px var(--tech-border) inset !important;
+  color: var(--tech-text-main) !important;
+}
+.el-input__wrapper:hover,
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--tech-primary) inset !important;
+}
+
+.el-menu {
+  border-right: none !important;
+  background: transparent !important;
+}
+.el-menu-item {
+  color: var(--tech-text-dim) !important;
+}
+.el-menu-item:hover,
+.el-menu-item.is-active {
+  color: var(--tech-primary) !important;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 243, 255, 0.1),
+    transparent
+  ) !important;
+  border-left: 3px solid var(--tech-primary);
+  text-shadow: 0 0 8px var(--tech-primary);
+}
