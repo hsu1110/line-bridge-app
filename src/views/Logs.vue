@@ -8,7 +8,7 @@
     </div>
 
     <div class="glass-panel table-container">
-      <el-table :data="logs" style="width: 100%" height="calc(100vh - 200px)">
+      <el-table :data="logs" style="width: 100%" height="100%">
         <el-table-column prop="timestamp" label="時間" width="200">
           <template #default="scope">
             <span class="tech-time">{{ new Date(scope.row.timestamp).toLocaleString() }}</span>
@@ -54,6 +54,8 @@ async function loadLogs() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Prevent overflow */
+  overflow: hidden;
 }
 
 .header-actions {
@@ -78,6 +80,7 @@ async function loadLogs() {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Critical for table scroll */
 }
 
 :deep(.el-table) {

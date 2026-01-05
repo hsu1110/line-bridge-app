@@ -8,7 +8,7 @@
     </div>
 
     <div class="glass-panel table-container">
-      <el-table :data="templates" style="width: 100%">
+      <el-table :data="templates" style="width: 100%" height="100%">
         <el-table-column prop="name" label="模板名稱" />
         <el-table-column prop="code" label="代碼 (Code)" />
         <el-table-column prop="content" label="內容預覽" show-overflow-tooltip />
@@ -215,6 +215,8 @@ async function sendTestMessage() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header-actions {
@@ -239,6 +241,7 @@ async function sendTestMessage() {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 :deep(.el-table) {

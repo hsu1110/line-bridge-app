@@ -5,7 +5,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import './assets/theme.css'
 import App from './App.vue'
 import router from './router'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+
 
 const app = createApp(App)
 

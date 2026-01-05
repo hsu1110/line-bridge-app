@@ -1,6 +1,6 @@
 <template>
   <div class="common-layout">
-    <el-container>
+    <el-container class="root-container">
       <el-aside width="220px" class="tech-sidebar">
         <div class="logo-area">
           <div class="logo-icon">
@@ -41,7 +41,7 @@
         </div>
       </el-aside>
       
-      <el-container>
+      <el-container class="content-wrapper">
         <el-header class="tech-header">
           <div class="header-content">
             <span class="system-id">SYS-ID: {{ systemId }}</span>
@@ -87,6 +87,17 @@ onUnmounted(() => {
 .common-layout {
   height: 100vh;
   background: var(--tech-bg-dark);
+}
+
+.root-container {
+  height: 100%;
+}
+
+.content-wrapper {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Sidebar */
@@ -180,6 +191,7 @@ onUnmounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Critical for nested flex scrolling */
 }
 
 /* Animations */

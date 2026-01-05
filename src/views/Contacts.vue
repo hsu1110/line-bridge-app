@@ -13,7 +13,7 @@
     </div>
 
     <div class="glass-panel table-container">
-      <el-table :data="contacts" style="width: 100%">
+      <el-table :data="contacts" style="width: 100%" height="100%">
         <el-table-column prop="name" label="名稱" />
         <el-table-column prop="code" label="代碼 (Code)">
           <template #default="scope">
@@ -265,6 +265,8 @@ async function confirmImport() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header-actions {
@@ -289,6 +291,7 @@ async function confirmImport() {
   overflow: hidden; /* Required for el-table height calculation */
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 /* Ensure table takes full height of container */
