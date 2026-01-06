@@ -145,3 +145,69 @@ npm run dev
 # 打包應用程式 (Windows)
 npm run build
 ```
+
+---
+
+## 📚 API 使用指南 (API Usage Guide)
+
+本指南說明如何從**其他電腦** (External Client) 呼叫 LINE Message Bridge 的 API 來發送訊息。
+
+### 1. 基本資訊 (Basic Info)
+
+- **API URL**: `http://<Server_IP>:<Port>/api/send`
+  - `<Server_IP>`: 請填入安裝 LINE Message Bridge 那台電腦的 IP (例如 `192.168.1.100`)。
+  - `<Port>`: 預設為 `3000` (可在設定中修改)。
+- **Method**: `POST`
+
+### 2. 範例程式碼 (Code Examples)
+
+#### PowerShell (Windows)
+
+適用於 Windows 環境，無需安裝額外軟體。
+
+##### 範例 1：發送簡單文字 (無需 Content-Type)
+
+```powershell
+# 設定 API URL (請修改 IP)
+$url = "http://192.168.1.100:3000/api/send"
+
+# 設定參數
+$body = @{
+    target_code = "IT_DEPT"
+    message = "系統警告：伺服器 CPU 使用率過高！"
+    # 若有設定 API Key，請取消註解下一行
+    # api_key = "YOUR_API_KEY"
+}
+
+# 發送請求
+Invoke-RestMethod -Uri $url -Method Post -Body $body
+```
+
+##### 範例 2：發送模板訊息 (建議使用 JSON)
+
+```powershell
+$url = "http://192.168.1.100:3000/api/send"
+$headers = @{
+    "Content-Type" = "application/json"
+    "x-api-key" = "YOUR_API_KEY" # 若有設定 API Key
+}
+
+$body = @{
+    target_code = "IT_DEPT"
+    template_code = "SERVER_ALERT" # 模板名稱
+    params = @{
+        server = "Web-01"
+        status = "Down"
+    }
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -Encoding UTF8
+```
+
+#### cURL (Linux/Mac)
+
+```bash
+curl -X POST http://192.168.1.100:3000/api/send \
+  -d "target_code=IT_DEPT" \
+  -d "message=Hello from cURL"
+```
