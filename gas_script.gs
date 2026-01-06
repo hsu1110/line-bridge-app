@@ -1,6 +1,8 @@
 // ---------------------------------------------------------
-// LINE Message Bridge - GAS Helper
-// 功能 1: 接收 LINE Webhook，處理「系統綁定」指令
+// LINE Message Bridge - GAS Helper (Smart Binding Version)
+// 功能 1: 接收 LINE Webhook
+//   - Follow/Join: 自動抓取名稱並綁定
+//   - Message: 處理「系統綁定」指令 (改名用)
 // 功能 2: 提供 API (doGet) 讓 Electron 匯入名單
 // ---------------------------------------------------------
 
@@ -18,48 +20,67 @@ var SHEET_NAME = "Contacts";
 // ---------------------------------------------------------
 function doPost(e) {
   if (!CHANNEL_ACCESS_TOKEN) {
-    // 如果沒設定 Token，回傳錯誤 Log (雖然 LINE 看不到)
     console.error("尚未設定 CHANNEL_ACCESS_TOKEN");
     return ContentService.createTextOutput("Error: Token not set");
   }
 
   var msg = JSON.parse(e.postData.contents);
-  var event = msg.events[0];
+  var events = msg.events;
 
-  // 處理加入群組/聊天室事件 (join)
-  if (event.type === "join") {
+  if (!events || events.length === 0) {
+    return ContentService.createTextOutput("OK");
+  }
+
+  for (var i = 0; i < events.length; i++) {
+    var event = events[i];
     var replyToken = event.replyToken;
-    var welcomeMsg =
-      "感謝您將本機器人加入好友或群組！🤖\n\n若要讓此聊天室接收來自系統的通知，請輸入以下指令進行綁定：\n\n系統綁定：識別名稱\n\n範例： 若您是個人使用，請輸入： 系統綁定：王小明\n\n若這是部門群組，請輸入： 系統綁定：IT部門群組\n\n輸入後請等待機器人回覆「✅ 綁定成功」，即完成設定！";
-    replyMessage(replyToken, welcomeMsg);
-    return ContentService.createTextOutput("OK");
-  }
+    var source = event.source;
 
-  // 只處理文字訊息
-  if (!event || event.type !== "message" || event.message.type !== "text") {
-    return ContentService.createTextOutput("OK");
-  }
+    // A. 處理加好友 (Follow) -> 自動抓取個人資料
+    if (event.type === "follow") {
+      var userId = source.userId;
+      var profile = getProfile(userId);
+      var displayName = profile ? profile.displayName : "Unknown User";
 
-  var text = event.message.text.trim();
-  var replyToken = event.replyToken;
-  var source = event.source;
+      saveToSheet(displayName, userId, "user");
+      // replyMessage(replyToken, "歡迎 " + displayName + "！系統已自動完成綁定。");
+    }
 
-  // 檢查指令: "系統綁定：[名稱]" 或 "System Bind:[Name]"
-  var regex = /^(系統綁定|System Bind)[:：]\s*(.+)$/i;
-  var match = text.match(regex);
+    // B. 處理加入群組 (Join) -> 自動抓取群組資料
+    if (event.type === "join") {
+      var groupId = source.groupId;
+      var summary = getGroupSummary(groupId);
+      var groupName = summary ? summary.groupName : "Unknown Group";
 
-  if (match) {
-    var customName = match[2].trim();
-    var id = source.groupId || source.roomId || source.userId;
-    var type = source.type;
+      saveToSheet(groupName, groupId, "group");
+      replyMessage(
+        replyToken,
+        "大家好！我是通知機器人。\n已自動綁定群組：" +
+          groupName +
+          "\n若需改名，請輸入「系統綁定：新名稱」"
+      );
+    }
 
-    if (!id) return;
+    // C. 處理文字訊息 (改名指令)
+    if (event.type === "message" && event.message.type === "text") {
+      var text = event.message.text.trim();
+      var regex = /^(系統綁定|System Bind)[:：]\s*(.+)$/i;
+      var match = text.match(regex);
 
-    saveToSheet(customName, id, type);
-    replyMessage(
-      replyToken,
-      "✅ 綁定成功！\n名稱：" + customName + "\nID：" + id
-    );
+      if (match) {
+        var customName = match[2].trim();
+        var id = source.groupId || source.roomId || source.userId;
+        var type = source.type;
+
+        if (id) {
+          saveToSheet(customName, id, type);
+          replyMessage(
+            replyToken,
+            "✅ 更新成功！\n名稱：" + customName + "\nID：" + id
+          );
+        }
+      }
+    }
   }
 
   return ContentService.createTextOutput("OK");
@@ -76,35 +97,67 @@ function doGet(e) {
 }
 
 // ---------------------------------------------------------
-// 輔助函式
+// LINE API Helpers
 // ---------------------------------------------------------
 
+function getProfile(userId) {
+  try {
+    var url = "https://api.line.me/v2/bot/profile/" + userId;
+    var response = UrlFetchApp.fetch(url, {
+      headers: { Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN },
+    });
+    return JSON.parse(response.getContentText());
+  } catch (e) {
+    console.error("Get Profile Error: " + e);
+    return null;
+  }
+}
+
+function getGroupSummary(groupId) {
+  try {
+    var url = "https://api.line.me/v2/bot/group/" + groupId + "/summary";
+    var response = UrlFetchApp.fetch(url, {
+      headers: { Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN },
+    });
+    return JSON.parse(response.getContentText());
+  } catch (e) {
+    console.error("Get Group Summary Error: " + e);
+    return null;
+  }
+}
+
 function replyMessage(replyToken, message) {
+  if (!replyToken) return;
   var url = "https://api.line.me/v2/bot/message/reply";
   var payload = {
     replyToken: replyToken,
-    messages: [
-      {
-        type: "text",
-        text: message,
-      },
-    ],
+    messages: [{ type: "text", text: message }],
   };
 
-  UrlFetchApp.fetch(url, {
-    headers: {
-      "Content-Type": "application/json; charset=UTF-8",
-      Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN,
-    },
-    method: "post",
-    payload: JSON.stringify(payload),
-  });
+  try {
+    UrlFetchApp.fetch(url, {
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+        Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN,
+      },
+      method: "post",
+      payload: JSON.stringify(payload),
+    });
+  } catch (e) {
+    console.error("Reply Error: " + e);
+  }
 }
+
+// ---------------------------------------------------------
+// Sheet Helpers
+// ---------------------------------------------------------
 
 function getSheet() {
   var ss;
   if (SHEET_ID) {
-    ss = SpreadsheetApp.openById(SHEET_ID);
+    try {
+      ss = SpreadsheetApp.openById(SHEET_ID);
+    } catch (e) {}
   } else {
     try {
       ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -112,12 +165,10 @@ function getSheet() {
   }
 
   if (!ss) {
-    // 嘗試搜尋檔名
     var files = DriveApp.getFilesByName("LineBotData");
     if (files.hasNext()) {
       ss = SpreadsheetApp.open(files.next());
     } else {
-      // 建立新檔案
       ss = SpreadsheetApp.create("LineBotData");
     }
   }
@@ -135,13 +186,15 @@ function saveToSheet(name, id, type) {
   var timestamp = new Date();
   var data = sheet.getDataRange().getValues();
 
+  // Update existing
   for (var i = 1; i < data.length; i++) {
     if (data[i][2] === id) {
-      sheet.getRange(i + 1, 2).setValue(name);
+      sheet.getRange(i + 1, 2).setValue(name); // Update Name
       sheet.getRange(i + 1, 1).setValue(timestamp);
       return;
     }
   }
+  // Append new
   sheet.appendRow([timestamp, name, id, type]);
 }
 

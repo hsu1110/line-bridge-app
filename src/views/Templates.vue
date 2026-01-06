@@ -264,4 +264,18 @@ async function sendTestMessage() {
   background-color: var(--tech-bg-panel);
   color: var(--tech-primary);
 }
+
+/* Tech Button Styles (Default Type) */
+.tech-btn:not(.el-button--primary):not(.el-button--success):not(.el-button--danger) {
+  background: transparent;
+  border: 1px solid var(--tech-border);
+  color: var(--tech-text-dim);
+  transition: all 0.3s;
+}
+
+.tech-btn:not(.el-button--primary):not(.el-button--success):not(.el-button--danger):hover {
+  border-color: var(--tech-primary);
+  color: var(--tech-primary);
+  background: rgba(6, 199, 85, 0.1); /* Slight tint */
+}
 </style>

@@ -73,9 +73,9 @@ app.whenReady().then(async () => {
     return true
   })
 
-  ipcMain.handle('server:restart', () => {
+  ipcMain.handle('server:restart', async () => {
     stopServer()
-    startServer()
+    await startServer()
     return true
   })
 

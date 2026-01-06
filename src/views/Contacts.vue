@@ -3,7 +3,10 @@
     <div class="header-actions glass-panel">
       <h2 class="page-title">通訊錄管理</h2>
       <div class="action-buttons">
-        <el-button type="success" @click="openImportDialog">
+        <el-button @click="loadContacts" class="tech-btn">
+          <el-icon><Refresh /></el-icon> 刷新
+        </el-button>
+        <el-button v-if="bindingMethod === 'gas'" type="success" @click="openImportDialog">
           <el-icon><Download /></el-icon> 從 GAS 匯入
         </el-button>
         <el-button type="primary" @click="openAddDialog">
@@ -104,13 +107,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download, Plus, WarningFilled } from '@element-plus/icons-vue'
+import { Download, Plus, WarningFilled, Refresh } from '@element-plus/icons-vue'
 import { v4 as uuidv4 } from 'uuid'
 
 const contacts = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const form = ref<any>({})
+const bindingMethod = ref('gas')
 
 // Import related
 const importDialogVisible = ref(false)
@@ -123,6 +127,7 @@ onMounted(loadContacts)
 async function loadContacts() {
   const db = await (window as any).ipcRenderer.invoke('db:get-all')
   contacts.value = db.contacts
+  bindingMethod.value = db.settings.bindingMethod || 'gas'
 }
 
 // Duplicate Code Detection
@@ -202,14 +207,23 @@ async function openImportDialog() {
     const rawData = Array.isArray(data) ? data : []
     
     // Process data to identify updates vs new
-    gasData.value = rawData.map((item: any) => {
+    const processedData = rawData.map((item: any) => {
       const existing = db.contacts.find((c: any) => c.lineId === item.id)
+      
+      // If exact match (ID & Name), mark as 'skip'
+      if (existing && existing.name === item.name) {
+        return { ...item, status: 'skip' }
+      }
+
       return {
         ...item,
         status: existing ? 'update' : 'new',
         existingData: existing
       }
     })
+
+    // Filter out skipped items
+    gasData.value = processedData.filter((item: any) => item.status !== 'skip')
     
     if (gasData.value.length === 0) {
       ElMessage.info('GAS 上沒有資料')
@@ -347,5 +361,34 @@ async function confirmImport() {
   align-items: center;
   display: flex;
   gap: 4px;
+}
+
+/* Checkbox Styles */
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner),
+:deep(.el-checkbox__input.is-indeterminate .el-checkbox__inner) {
+  background-color: var(--tech-primary);
+  border-color: var(--tech-primary);
+}
+
+:deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: var(--tech-primary);
+}
+
+:deep(.el-checkbox__inner:hover) {
+  border-color: var(--tech-primary);
+}
+
+/* Tech Button Styles (Default Type) */
+.tech-btn:not(.el-button--primary):not(.el-button--success):not(.el-button--danger) {
+  background: transparent;
+  border: 1px solid var(--tech-border);
+  color: var(--tech-text-dim);
+  transition: all 0.3s;
+}
+
+.tech-btn:not(.el-button--primary):not(.el-button--success):not(.el-button--danger):hover {
+  border-color: var(--tech-primary);
+  color: var(--tech-primary);
+  background: rgba(6, 199, 85, 0.1); /* Slight tint */
 }
 </style>

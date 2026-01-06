@@ -33,6 +33,8 @@ export interface Log {
 export interface Settings {
   port: number
   channelAccessToken: string
+  lineChannelSecret?: string // For Local Webhook Signature Validation
+  bindingMethod: 'gas' | 'local'
   proxy?: string
   gasUrl?: string
   apiKey?: string // Internal API Security
@@ -47,6 +49,8 @@ let settingsDB: Low<Settings>
 const defaultSettings: Settings = {
   port: 3000,
   channelAccessToken: '',
+  lineChannelSecret: '',
+  bindingMethod: 'gas',
   apiKey: ''
 }
 
