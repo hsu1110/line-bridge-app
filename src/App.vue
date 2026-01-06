@@ -1,68 +1,72 @@
 <template>
-  <div class="common-layout">
-    <el-container class="root-container">
-      <el-aside width="220px" class="tech-sidebar">
-        <div class="logo-area">
-          <div class="logo-icon">
-            <img src="/LINE_New_App_Icon.png" alt="LINE" />
+  <div class="app-window">
+    <TitleBar />
+    <div class="common-layout">
+      <el-container class="root-container">
+        <el-aside width="220px" class="tech-sidebar">
+          <div class="logo-area">
+            <div class="logo-icon">
+              <img src="/LINE_New_App_Icon.png" alt="LINE" />
+            </div>
+            <div class="logo-text">YTEC LINE</div>
           </div>
-          <div class="logo-text">YTEC LINE</div>
-        </div>
-        <el-menu
-          default-active="/dashboard"
-          class="el-menu-vertical-demo"
-          router
-        >
-          <el-menu-item index="/dashboard">
-            <el-icon><Odometer /></el-icon>
-            <span>儀表板 (Dashboard)</span>
-          </el-menu-item>
-          <el-menu-item index="/contacts">
-            <el-icon><User /></el-icon>
-            <span>通訊錄 (Contacts)</span>
-          </el-menu-item>
-          <el-menu-item index="/templates">
-            <el-icon><Document /></el-icon>
-            <span>訊息模板 (Templates)</span>
-          </el-menu-item>
-          <el-menu-item index="/logs">
-            <el-icon><List /></el-icon>
-            <span>發送紀錄 (Logs)</span>
-          </el-menu-item>
-          <el-menu-item index="/settings">
-            <el-icon><Setting /></el-icon>
-            <span>系統設定 (Settings)</span>
-          </el-menu-item>
-        </el-menu>
+          <el-menu
+            default-active="/dashboard"
+            class="el-menu-vertical-demo"
+            router
+          >
+            <el-menu-item index="/dashboard">
+              <el-icon><Odometer /></el-icon>
+              <span>儀表板 (Dashboard)</span>
+            </el-menu-item>
+            <el-menu-item index="/contacts">
+              <el-icon><User /></el-icon>
+              <span>通訊錄 (Contacts)</span>
+            </el-menu-item>
+            <el-menu-item index="/templates">
+              <el-icon><Document /></el-icon>
+              <span>訊息模板 (Templates)</span>
+            </el-menu-item>
+            <el-menu-item index="/logs">
+              <el-icon><List /></el-icon>
+              <span>發送紀錄 (Logs)</span>
+            </el-menu-item>
+            <el-menu-item index="/settings">
+              <el-icon><Setting /></el-icon>
+              <span>系統設定 (Settings)</span>
+            </el-menu-item>
+          </el-menu>
+          
+          <div class="sidebar-footer">
+            <div class="status-dot"></div>
+            <span>系統連線中</span>
+          </div>
+        </el-aside>
         
-        <div class="sidebar-footer">
-          <div class="status-dot"></div>
-          <span>系統連線中</span>
-        </div>
-      </el-aside>
-      
-      <el-container class="content-wrapper">
-        <el-header class="tech-header">
-          <div class="header-content">
-            <span class="system-id">SYS-ID: {{ systemId }}</span>
-            <div class="time-display">{{ currentTime }}</div>
-          </div>
-        </el-header>
-        <el-main class="tech-main">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" />
-            </transition>
-          </router-view>
-        </el-main>
+        <el-container class="content-wrapper">
+          <el-header class="tech-header">
+            <div class="header-content">
+              <span class="system-id">SYS-ID: {{ systemId }}</span>
+              <div class="time-display">{{ currentTime }}</div>
+            </div>
+          </el-header>
+          <el-main class="tech-main">
+            <router-view v-slot="{ Component }">
+              <transition name="fade" mode="out-in">
+                <component :is="Component" />
+              </transition>
+            </router-view>
+          </el-main>
+        </el-container>
       </el-container>
-    </el-container>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Odometer, User, Document, List, Setting } from '@element-plus/icons-vue'
+import TitleBar from './components/TitleBar.vue'
 
 const currentTime = ref('')
 const systemId = ref('YT-LINE-001')
@@ -84,13 +88,25 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.common-layout {
+.app-window {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   background: var(--tech-bg-dark);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.common-layout {
+  flex: 1; /* Take remaining height */
+  overflow: hidden; /* Prevent overflow */
+  display: flex;
+  min-height: 0; /* Critical for flex nesting */
 }
 
 .root-container {
   height: 100%;
+  width: 100%;
 }
 
 .content-wrapper {
@@ -192,6 +208,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0; /* Critical for nested flex scrolling */
+  flex: 1; /* Ensure it takes remaining space and shrinks */
 }
 
 /* Animations */

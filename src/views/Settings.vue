@@ -118,18 +118,18 @@ const restartServer = async () => {
 .page-container {
   padding: 10px;
   display: flex;
-  justify-content: center;
+  height: 100%; /* Ensure full height */
+  overflow-y: auto; /* Allow scrolling */
 }
 
 .settings-panel {
-  width: 100%;
-  max-width: 800px;
-  padding: 40px;
+  padding: 20px; /* Reduced padding */
+  margin: auto; /* Center vertically and horizontally, safe for overflow */
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .page-title {
-  margin-top: 0;
-  margin-bottom: 30px;
+  margin: 0;
   font-family: 'Courier New', monospace;
   color: var(--tech-primary);
   letter-spacing: 2px;
@@ -188,6 +188,7 @@ const restartServer = async () => {
   display: flex;
   justify-content: center;
   gap: 20px;
+  flex-wrap: wrap; /* Allow wrapping */
 }
 
 .tech-btn-primary {
@@ -278,5 +279,25 @@ const restartServer = async () => {
 :deep(.el-radio__input.is-checked + .el-radio__label) {
   color: var(--tech-primary);
   font-weight: bold;
+}
+
+/* Responsive Form */
+@media (max-width: 600px) {
+  :deep(.el-form-item) {
+    flex-direction: column;
+  }
+  :deep(.el-form-item__label) {
+    width: 100% !important;
+    text-align: left !important;
+    justify-content: flex-start;
+    margin-bottom: 5px;
+  }
+  :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+  .tech-btn-primary, .tech-btn-warning {
+    width: 100%; /* Full width buttons on mobile */
+  }
 }
 </style>

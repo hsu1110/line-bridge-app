@@ -21,6 +21,7 @@ let win: BrowserWindow | null
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'LINE_New_App_Icon.png'),
+    frame: false, // Frameless window
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -86,6 +87,23 @@ app.whenReady().then(async () => {
     } catch (error: any) {
       throw new Error(error.message)
     }
+  })
+
+  // Window Controls
+  ipcMain.on('window:minimize', () => {
+    win?.minimize()
+  })
+
+  ipcMain.on('window:maximize', () => {
+    if (win?.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win?.maximize()
+    }
+  })
+
+  ipcMain.on('window:close', () => {
+    win?.close()
   })
 
   createWindow()

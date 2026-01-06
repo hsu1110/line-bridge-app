@@ -11706,14 +11706,7 @@ var _eval = EvalError;
 var range = RangeError;
 var ref = ReferenceError;
 var syntax = SyntaxError;
-var type;
-var hasRequiredType;
-function requireType() {
-  if (hasRequiredType) return type;
-  hasRequiredType = 1;
-  type = TypeError;
-  return type;
-}
+var type = TypeError;
 var uri = URIError;
 var abs$1 = Math.abs;
 var floor$1 = Math.floor;
@@ -11959,7 +11952,7 @@ function requireCallBindApplyHelpers() {
   if (hasRequiredCallBindApplyHelpers) return callBindApplyHelpers;
   hasRequiredCallBindApplyHelpers = 1;
   var bind3 = functionBind;
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var $call2 = requireFunctionCall();
   var $actualApply = requireActualApply();
   callBindApplyHelpers = function callBindBasic(args) {
@@ -12032,7 +12025,7 @@ var $EvalError = _eval;
 var $RangeError = range;
 var $ReferenceError = ref;
 var $SyntaxError = syntax;
-var $TypeError$1 = requireType();
+var $TypeError$1 = type;
 var $URIError = uri;
 var abs = abs$1;
 var floor = floor$1;
@@ -12363,7 +12356,7 @@ var GetIntrinsic2 = getIntrinsic;
 var $defineProperty = GetIntrinsic2("%Object.defineProperty%", true);
 var hasToStringTag = requireShams()();
 var hasOwn$1 = hasown;
-var $TypeError = requireType();
+var $TypeError = type;
 var toStringTag = hasToStringTag ? Symbol.toStringTag : null;
 var esSetTostringtag = function setToStringTag(object, value) {
   var overrideIfSet = arguments.length > 2 && !!arguments[2] && arguments[2].force;
@@ -17583,25 +17576,18 @@ function DeprecationError(namespace, message, stack) {
   });
   return error2;
 }
-var setprototypeof;
-var hasRequiredSetprototypeof;
-function requireSetprototypeof() {
-  if (hasRequiredSetprototypeof) return setprototypeof;
-  hasRequiredSetprototypeof = 1;
-  setprototypeof = Object.setPrototypeOf || ({ __proto__: [] } instanceof Array ? setProtoOf : mixinProperties);
-  function setProtoOf(obj, proto) {
-    obj.__proto__ = proto;
-    return obj;
-  }
-  function mixinProperties(obj, proto) {
-    for (var prop in proto) {
-      if (!Object.prototype.hasOwnProperty.call(obj, prop)) {
-        obj[prop] = proto[prop];
-      }
+var setprototypeof = Object.setPrototypeOf || ({ __proto__: [] } instanceof Array ? setProtoOf : mixinProperties);
+function setProtoOf(obj, proto) {
+  obj.__proto__ = proto;
+  return obj;
+}
+function mixinProperties(obj, proto) {
+  for (var prop in proto) {
+    if (!Object.prototype.hasOwnProperty.call(obj, prop)) {
+      obj[prop] = proto[prop];
     }
-    return obj;
   }
-  return setprototypeof;
+  return obj;
 }
 const require$$0$6 = {
   "100": "Continue",
@@ -17772,36 +17758,24 @@ function requireInherits_browser() {
   }
   return inherits_browser.exports;
 }
-var hasRequiredInherits;
-function requireInherits() {
-  if (hasRequiredInherits) return inherits.exports;
-  hasRequiredInherits = 1;
-  try {
-    var util2 = require("util");
-    if (typeof util2.inherits !== "function") throw "";
-    inherits.exports = util2.inherits;
-  } catch (e) {
-    inherits.exports = requireInherits_browser();
-  }
-  return inherits.exports;
+try {
+  var util$1 = require("util");
+  if (typeof util$1.inherits !== "function") throw "";
+  inherits.exports = util$1.inherits;
+} catch (e) {
+  inherits.exports = requireInherits_browser();
 }
+var inheritsExports = inherits.exports;
 /*!
  * toidentifier
  * Copyright(c) 2016 Douglas Christopher Wilson
  * MIT Licensed
  */
-var toidentifier;
-var hasRequiredToidentifier;
-function requireToidentifier() {
-  if (hasRequiredToidentifier) return toidentifier;
-  hasRequiredToidentifier = 1;
-  toidentifier = toIdentifier;
-  function toIdentifier(str) {
-    return str.split(" ").map(function(token) {
-      return token.slice(0, 1).toUpperCase() + token.slice(1);
-    }).join("").replace(/[^ _0-9a-z]/gi, "");
-  }
-  return toidentifier;
+var toidentifier = toIdentifier;
+function toIdentifier(str) {
+  return str.split(" ").map(function(token) {
+    return token.slice(0, 1).toUpperCase() + token.slice(1);
+  }).join("").replace(/[^ _0-9a-z]/gi, "");
 }
 /*!
  * http-errors
@@ -17811,10 +17785,10 @@ function requireToidentifier() {
  */
 (function(module) {
   var deprecate2 = depd_1("http-errors");
-  var setPrototypeOf = requireSetprototypeof();
+  var setPrototypeOf = setprototypeof;
   var statuses2 = statuses$3;
-  var inherits2 = requireInherits();
-  var toIdentifier = requireToidentifier();
+  var inherits2 = inheritsExports;
+  var toIdentifier2 = toidentifier;
   module.exports = createError2;
   module.exports.HttpError = createHttpErrorConstructor();
   module.exports.isHttpError = createIsHttpErrorFunction(module.exports.HttpError);
@@ -17949,7 +17923,7 @@ function requireToidentifier() {
   function populateConstructorExports(exports$1, codes2, HttpError) {
     codes2.forEach(function forEachCode(code) {
       var CodeError;
-      var name = toIdentifier(statuses2.message[code]);
+      var name = toIdentifier2(statuses2.message[code]);
       switch (codeClass(code)) {
         case 400:
           CodeError = createClientErrorConstructor(HttpError, name, code);
@@ -52976,7 +52950,7 @@ function requireSideChannelList() {
   if (hasRequiredSideChannelList) return sideChannelList;
   hasRequiredSideChannelList = 1;
   var inspect = requireObjectInspect();
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var listGetNode = function(list, key, isDelete) {
     var prev = list;
     var curr;
@@ -53095,7 +53069,7 @@ function requireSideChannelMap() {
   var GetIntrinsic3 = getIntrinsic;
   var callBound2 = requireCallBound();
   var inspect = requireObjectInspect();
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var $Map = GetIntrinsic3("%Map%", true);
   var $mapGet = callBound2("Map.prototype.get", true);
   var $mapSet = callBound2("Map.prototype.set", true);
@@ -53152,7 +53126,7 @@ function requireSideChannelWeakmap() {
   var callBound2 = requireCallBound();
   var inspect = requireObjectInspect();
   var getSideChannelMap = requireSideChannelMap();
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var $WeakMap = GetIntrinsic3("%WeakMap%", true);
   var $weakMapGet = callBound2("WeakMap.prototype.get", true);
   var $weakMapSet = callBound2("WeakMap.prototype.set", true);
@@ -53221,7 +53195,7 @@ var hasRequiredSideChannel;
 function requireSideChannel() {
   if (hasRequiredSideChannel) return sideChannel;
   hasRequiredSideChannel = 1;
-  var $TypeError2 = requireType();
+  var $TypeError2 = type;
   var inspect = requireObjectInspect();
   var getSideChannelList = requireSideChannelList();
   var getSideChannelMap = requireSideChannelMap();
@@ -95265,6 +95239,8 @@ let win;
 function createWindow() {
   win = new BrowserWindow({
     icon: path$4.join(process.env.VITE_PUBLIC, "LINE_New_App_Icon.png"),
+    frame: false,
+    // Frameless window
     webPreferences: {
       preload: path$4.join(__dirname$1, "preload.mjs")
     }
@@ -95315,6 +95291,19 @@ app.whenReady().then(async () => {
     } catch (error2) {
       throw new Error(error2.message);
     }
+  });
+  ipcMain.on("window:minimize", () => {
+    win == null ? void 0 : win.minimize();
+  });
+  ipcMain.on("window:maximize", () => {
+    if (win == null ? void 0 : win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win == null ? void 0 : win.maximize();
+    }
+  });
+  ipcMain.on("window:close", () => {
+    win == null ? void 0 : win.close();
   });
   createWindow();
 });

@@ -1,7 +1,5 @@
 <template>
   <div class="dashboard-container">
-    <h2 class="page-title">系統儀表板</h2>
-    
     <!-- Top Row: Key Metrics -->
     <el-row :gutter="20" class="mb-4">
       <el-col :span="8">
@@ -30,7 +28,7 @@
             <div class="tech-label">MESSAGES SENT</div>
           </div>
         </div>
-      </el-col>
+      </el-col>    
       <el-col :span="8">
         <div class="tech-card glass-panel">
           <div class="card-header">
@@ -154,17 +152,19 @@ const getRateColor = (rate: number) => {
 
 <style scoped>
 .dashboard-container {
-  padding: 10px;
+  padding: 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: hidden; /* Prevent container overflow */
+  overflow-y: auto;
 }
 
 .mb-4 {
   margin-bottom: 20px;
   flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .main-content-row {
@@ -174,6 +174,7 @@ const getRateColor = (rate: number) => {
 }
 
 /* Ensure columns stretch to fill row */
+.mb-4 :deep(.el-col),
 .main-content-row :deep(.el-col) {
   display: flex;
   flex-direction: column;
@@ -199,6 +200,7 @@ const getRateColor = (rate: number) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%; /* Ensure equal height */
 }
 
 .tech-card::before {
