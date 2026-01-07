@@ -195,12 +195,15 @@ async function sendTestMessage() {
     
     const res = await axios.post(`http://localhost:${port}/api/send`, payload, config)
     
-    if (res.data.success) {
+    if (res && res.data && res.data.success) {
       testResult.value = { success: true, message: 'SENT! Log ID: ' + res.data.logId }
       ElMessage.success('SENT')
+    } else {
+      throw new Error('Invalid response from server')
     }
   } catch (e: any) {
-    const errorMsg = e.response?.data?.error || e.message
+    console.error('Send Error:', e)
+    const errorMsg = e.response?.data?.error || e.message || 'Unknown Error'
     testResult.value = { success: false, message: 'FAILED: ' + errorMsg }
     ElMessage.error('FAILED')
   } finally {
