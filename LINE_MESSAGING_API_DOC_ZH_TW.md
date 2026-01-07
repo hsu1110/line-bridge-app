@@ -452,3 +452,69 @@
 * **注意**: 票券功能通常建議在 LINE Official Account Manager 後台操作，API 功能較有限且複雜。
 * **Method**: `POST`
 * **Endpoint**: `https://api.line.me/v2/bot/message/coupon`
+
+---
+
+## 12. Webhook 事件 (Webhook Events)
+
+當使用者與官方帳號互動時，LINE Platform 會發送 Webhook 到您的伺服器 (或 GAS)。以下是常見的事件類型：
+
+### 12.1 訊息事件 (Message Event)
+
+* **Type**: `message`
+* **觸發時機**: 使用者傳送訊息 (文字、貼圖、圖片、影片等) 給機器人。
+* **用途**: 最基礎的互動，用於接收指令或對話。
+
+### 12.2 加好友事件 (Follow Event)
+
+* **Type**: `follow`
+* **觸發時機**: 使用者將機器人**加入好友**，或**解除封鎖**時。
+* **用途**: 發送歡迎詞、記錄使用者資料。
+
+### 12.3 解除好友事件 (Unfollow Event)
+
+* **Type**: `unfollow`
+* **觸發時機**: 使用者**封鎖**機器人時。
+* **用途**: 清除資料庫中的無效名單，節省資源。
+
+### 12.4 加入群組事件 (Join Event)
+
+* **Type**: `join`
+* **觸發時機**: 機器人被邀請進入群組或聊天室。
+* **用途**: 發送群組歡迎詞、記錄群組 ID。
+
+### 12.5 離開群組事件 (Leave Event)
+
+* **Type**: `leave`
+* **觸發時機**: 機器人被踢出群組，或主動離開群組。
+* **用途**: 清除資料庫中的群組資料。
+
+### 12.6 回傳事件 (Postback Event)
+
+* **Type**: `postback`
+* **觸發時機**: 使用者點擊了 Template Message 或 Rich Menu 中的按鈕 (Action 為 postback)。
+* **用途**: 處理按鈕互動，例如「確認購買」、「參加活動」，不會在聊天室顯示文字，體驗較佳。
+
+### 12.7 藍牙訊號事件 (Beacon Event)
+
+* **Type**: `beacon`
+* **觸發時機**: 使用者進入 LINE Beacon 設備的訊號範圍內。
+* **用途**: 實體店面導覽、打卡活動。
+
+### 12.8 帳號連結事件 (Account Link Event)
+
+* **Type**: `accountLink`
+* **觸發時機**: 使用者完成帳號綁定流程。
+* **用途**: 確認 LINE 帳號已成功與您的系統帳號連結。
+
+### 12.9 成員加入事件 (Member Joined Event)
+
+* **Type**: `memberJoined`
+* **觸發時機**: 有新成員加入機器人所在的群組。
+* **用途**: 歡迎新成員 (需注意隱私設定，未必能取得成員 ID)。
+
+### 12.10 成員離開事件 (Member Left Event)
+
+* **Type**: `memberLeft`
+* **觸發時機**: 有成員離開機器人所在的群組。
+* **用途**: 記錄群組人數變化。

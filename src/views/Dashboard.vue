@@ -32,12 +32,15 @@
       <el-col :span="8">
         <div class="tech-card glass-panel">
           <div class="card-header">
-            <span class="header-text">發送成功率</span>
+            <span class="header-text">本月額度使用量</span>
             <div class="header-line"></div>
           </div>
           <div class="card-content">
-            <div class="digital-number" :class="getRateColor(successRate)">{{ successRate }}%</div>
-            <div class="tech-label">SUCCESS RATE</div>
+            <div class="digital-number" :class="getQuotaColor(quotaInfo)">
+              <span v-if="quotaInfo.type === 'none'" style="font-size: 36px">吃到飽</span>
+              <span v-else>{{ quotaInfo.totalUsage }} / {{ quotaInfo.value }}</span>
+            </div>
+            <div class="tech-label">MONTHLY QUOTA</div>
           </div>
         </div>
       </el-col>
@@ -95,7 +98,7 @@ import { ref, onMounted } from 'vue'
 
 const port = ref(3000)
 const todayCount = ref(0)
-const successRate = ref(100)
+const quotaInfo = ref({ type: 'limited', value: 0, totalUsage: 0 })
 const templateStats = ref<any[]>([])
 const recentLogs = ref<any[]>([])
 
@@ -109,13 +112,9 @@ onMounted(async () => {
   // 1. Today Count
   todayCount.value = todayLogs.length
 
-  // 2. Success Rate
-  if (todayCount.value > 0) {
-    const successCount = todayLogs.filter((l: any) => l.status === 'success').length
-    successRate.value = Math.round((successCount / todayCount.value) * 100)
-  } else {
-    successRate.value = 100
-  }
+  // 2. Message Quota
+  const quota = await (window as any).ipcRenderer.invoke('line:get-quota')
+  quotaInfo.value = quota
 
   // 3. Template Stats
   const statsMap = new Map()
@@ -143,10 +142,15 @@ const formatTime = (isoString: string) => {
   return new Date(isoString).toLocaleTimeString('en-US', { hour12: false })
 }
 
-const getRateColor = (rate: number) => {
-  if (rate >= 90) return 'text-success'
-  if (rate >= 70) return 'text-warning'
-  return 'text-danger'
+const getQuotaColor = (info: any) => {
+  if (info.type === 'none') return '' // Default style (Cyan)
+  const usage = info.totalUsage
+  const limit = info.value
+  if (limit === 0) return 'text-danger'
+  const rate = usage / limit
+  if (rate >= 0.9) return 'text-danger'
+  if (rate >= 0.7) return 'text-warning'
+  return '' // Default style (Cyan)
 }
 </script>
 
@@ -262,9 +266,9 @@ const getRateColor = (rate: number) => {
   text-shadow: 0 0 15px var(--tech-primary);
 }
 
-.text-success { color: #00ff00; text-shadow: 0 0 15px #00ff00; }
-.text-warning { color: #ffaa00; text-shadow: 0 0 15px #ffaa00; }
-.text-danger { color: #ff0055; text-shadow: 0 0 15px #ff0055; }
+.text-success { color: #4ade80; text-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+.text-warning { color: #facc15; text-shadow: 0 0 8px rgba(250, 204, 21, 0.4); }
+.text-danger { color: #f87171; text-shadow: 0 0 8px rgba(248, 113, 113, 0.4); }
 
 .tech-value {
   font-family: 'Courier New', monospace;

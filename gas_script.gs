@@ -43,7 +43,12 @@ function doPost(e) {
       var displayName = profile ? profile.displayName : "Unknown User";
 
       saveToSheet(displayName, userId, "user");
-      // replyMessage(replyToken, "歡迎 " + displayName + "！系統已自動完成綁定。");
+      replyMessage(
+        replyToken,
+        "🎉 歡迎 " +
+          displayName +
+          "！\n\n我是您的訊息通知小幫手 🤖\n已自動為您完成綁定。\n\n💡 若想更改顯示名稱，請輸入：\n「系統綁定：您的暱稱」"
+      );
     }
 
     // B. 處理加入群組 (Join) -> 自動抓取群組資料
@@ -55,9 +60,9 @@ function doPost(e) {
       saveToSheet(groupName, groupId, "group");
       replyMessage(
         replyToken,
-        "大家好！我是通知機器人。\n已自動綁定群組：" +
+        "大家好 👋 我是通知小幫手！\n\n已綁定本群組：" +
           groupName +
-          "\n若需改名，請輸入「系統綁定：新名稱」"
+          "\n\n💡 若需更改群組顯示名稱，請輸入：\n「系統綁定：新名稱」"
       );
     }
 
@@ -80,6 +85,18 @@ function doPost(e) {
           );
         }
       }
+    }
+
+    // D. 處理封鎖/刪除好友 (Unfollow)
+    if (event.type === "unfollow") {
+      var userId = source.userId;
+      deleteFromSheet(userId);
+    }
+
+    // E. 處理離開群組 (Leave)
+    if (event.type === "leave") {
+      var id = source.groupId || source.roomId;
+      deleteFromSheet(id);
     }
   }
 
@@ -196,6 +213,22 @@ function saveToSheet(name, id, type) {
   }
   // Append new
   sheet.appendRow([timestamp, name, id, type]);
+}
+
+function deleteFromSheet(id) {
+  var sheet = getSheet();
+  var data = sheet.getDataRange().getValues();
+
+  // Iterate backwards to avoid index shifting issues
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (data[i][2] === id) {
+      // Column C is ID (index 2)
+      sheet.deleteRow(i + 1);
+      // Assuming ID is unique, we can return after deleting.
+      // If you suspect duplicates, remove the return statement.
+      return;
+    }
+  }
 }
 
 function readFromSheet() {

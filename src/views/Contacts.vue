@@ -66,13 +66,14 @@
           <el-table-column label="狀態" width="100">
              <template #default="scope">
                <el-tag v-if="scope.row.status === 'update'" type="warning" size="small">更新</el-tag>
+               <el-tag v-else-if="scope.row.status === 'delete'" type="danger" size="small">移除</el-tag>
                <el-tag v-else type="success" size="small">新增</el-tag>
              </template>
           </el-table-column>
         </el-table>
         <div class="dialog-footer">
           <el-button @click="importDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmImport">匯入選取項目</el-button>
+          <el-button type="primary" @click="confirmImport">確認</el-button>
         </div>
       </div>
     </el-dialog>
@@ -223,10 +224,24 @@ async function openImportDialog() {
     })
 
     // Filter out skipped items
-    gasData.value = processedData.filter((item: any) => item.status !== 'skip')
+    const finalData = processedData.filter((item: any) => item.status !== 'skip')
+
+    // Identify Deleted Contacts (Present in Local but Missing in GAS)
+    const gasIds = new Set(rawData.map((item: any) => item.id))
+    const deletedContacts = db.contacts
+      .filter((c: any) => c.lineId && !gasIds.has(c.lineId)) // Only check contacts with LINE ID
+      .map((c: any) => ({
+        name: c.name,
+        id: c.lineId,
+        type: c.type,
+        status: 'delete',
+        existingData: c
+      }))
+    
+    gasData.value = [...finalData, ...deletedContacts]
     
     if (gasData.value.length === 0) {
-      ElMessage.info('GAS 上沒有資料')
+      ElMessage.info('GAS 上沒有資料，且本地無須更新')
     }
   } catch (e: any) {
     ElMessage.error('匯入失敗: ' + e.message)
@@ -243,6 +258,7 @@ async function confirmImport() {
   const db = await (window as any).ipcRenderer.invoke('db:get-all')
   let addedCount = 0
   let updatedCount = 0
+  let deletedCount = 0
 
   for (const item of selectedImport.value) {
     if (item.status === 'update') {
@@ -252,6 +268,13 @@ async function confirmImport() {
         db.contacts[index].name = item.name
         // db.contacts[index].code = item.name // DO NOT UPDATE CODE
         updatedCount++
+      }
+    } else if (item.status === 'delete') {
+      // Delete Contact
+      const index = db.contacts.findIndex((c: any) => c.lineId === item.id)
+      if (index !== -1) {
+        db.contacts.splice(index, 1)
+        deletedCount++
       }
     } else {
       // New Contact
@@ -269,7 +292,7 @@ async function confirmImport() {
   await (window as any).ipcRenderer.invoke('db:save', db)
   importDialogVisible.value = false
   loadContacts()
-  ElMessage.success(`匯入完成：新增 ${addedCount} 筆，更新 ${updatedCount} 筆`)
+  ElMessage.success(`匯入完成：新增 ${addedCount} 筆，更新 ${updatedCount} 筆，移除 ${deletedCount} 筆`)
 }
 </script>
 

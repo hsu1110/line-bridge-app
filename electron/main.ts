@@ -4,6 +4,7 @@ import path from 'node:path'
 import axios from 'axios'
 import { initDB, getAllData, saveContacts, saveTemplates, saveSettings, saveLogs } from './store/db'
 import { startServer, stopServer } from './server/index'
+import { getQuota, getQuotaConsumption } from './server/lineService'
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -86,6 +87,23 @@ app.whenReady().then(async () => {
       return response.data
     } catch (error: any) {
       throw new Error(error.message)
+    }
+  })
+
+  ipcMain.handle('line:get-quota', async () => {
+    try {
+      const [quota, consumption] = await Promise.all([
+        getQuota(),
+        getQuotaConsumption()
+      ])
+      return {
+        type: quota?.type || 'none',
+        value: quota?.value || 0,
+        totalUsage: consumption?.totalUsage || 0
+      }
+    } catch (error) {
+      console.error('IPC line:get-quota error:', error)
+      return { type: 'none', value: 0, totalUsage: 0 }
     }
   })
 
