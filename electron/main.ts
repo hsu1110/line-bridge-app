@@ -90,11 +90,11 @@ app.whenReady().then(async () => {
     }
   })
 
-  ipcMain.handle('line:get-quota', async () => {
+  ipcMain.handle('line:get-quota', async (_, botId?: string) => {
     try {
       const [quota, consumption] = await Promise.all([
-        getQuota(),
-        getQuotaConsumption()
+        getQuota(botId),
+        getQuotaConsumption(botId)
       ])
       return {
         type: quota?.type || 'none',

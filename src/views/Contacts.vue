@@ -7,7 +7,7 @@
           <el-icon><Refresh /></el-icon> 刷新
         </el-button>
         <el-button v-if="bindingMethod === 'gas'" type="success" @click="openImportDialog">
-          <el-icon><Download /></el-icon> 從 GAS 匯入
+          <el-icon><Download /></el-icon> 從 GAS 匯入通訊錄
         </el-button>
         <el-button type="primary" @click="openAddDialog">
           <el-icon><Plus /></el-icon> 新增聯絡人
@@ -42,6 +42,17 @@
           </template>
         </el-table-column>
         <el-table-column prop="lineId" label="LINE ID" show-overflow-tooltip />
+        <el-table-column label="綁定機器人" width="150">
+          <template #default="scope">
+            <div v-if="scope.row.linkedBotIds && scope.row.linkedBotIds.length">
+              <el-tag v-for="botId in scope.row.linkedBotIds.slice(0, 2)" :key="botId" type="success" effect="plain">
+                {{ getBotName(botId) }}
+              </el-tag>
+              <el-tag v-if="scope.row.linkedBotIds.length > 2" type="success" effect="plain">+{{ scope.row.linkedBotIds.length - 2 }}</el-tag>
+            </div>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" align="right">
           <template #default="scope">
             <el-button size="small" @click="editContact(scope.row)" class="tech-btn">編輯</el-button>
@@ -52,7 +63,7 @@
     </div>
 
     <!-- Import Dialog -->
-    <el-dialog v-model="importDialogVisible" title="從 GAS 匯入" width="60%" class="tech-dialog">
+    <el-dialog v-model="importDialogVisible" title="從 GAS 匯入通訊錄" width="60%" class="tech-dialog">
       <div v-if="loadingGas" class="loading-container">
         <div class="tech-loader"></div>
         <div class="loading-text">資料同步中...</div>
@@ -116,6 +127,7 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const form = ref<any>({})
 const bindingMethod = ref('gas')
+const botAccounts = ref<any[]>([])
 
 // Import related
 const importDialogVisible = ref(false)
@@ -129,6 +141,12 @@ async function loadContacts() {
   const db = await (window as any).ipcRenderer.invoke('db:get-all')
   contacts.value = db.contacts
   bindingMethod.value = db.settings.bindingMethod || 'gas'
+  botAccounts.value = db.settings.accounts || []
+}
+
+function getBotName(botId: string) {
+  const bot = botAccounts.value.find(b => b.id === botId || b.lineBotId === botId)
+  return bot ? bot.name : botId.substring(0, 6) + '...'
 }
 
 // Duplicate Code Detection
@@ -178,7 +196,7 @@ async function saveContact() {
     db.contacts.push(formData)
   }
   
-  await (window as any).ipcRenderer.invoke('db:save', db)
+  await (window as any).ipcRenderer.invoke('db:save', JSON.parse(JSON.stringify(db)))
   dialogVisible.value = false
   loadContacts()
   ElMessage.success('儲存成功')
@@ -188,7 +206,7 @@ async function deleteContact(id: string) {
   if (!confirm('確定要刪除此聯絡人嗎？')) return
   const db = await (window as any).ipcRenderer.invoke('db:get-all')
   db.contacts = db.contacts.filter((c: any) => c.id !== id)
-  await (window as any).ipcRenderer.invoke('db:save', db)
+  await (window as any).ipcRenderer.invoke('db:save', JSON.parse(JSON.stringify(db)))
   loadContacts()
   ElMessage.success('已刪除')
 }
@@ -203,6 +221,9 @@ async function openImportDialog() {
   
   importDialogVisible.value = true
   loadingGas.value = true
+  gasData.value = []
+  selectedImport.value = [] // Clear previous selection
+  
   try {
     const data = await (window as any).ipcRenderer.invoke('gas:fetch', url)
     const rawData = Array.isArray(data) ? data : []
@@ -211,14 +232,18 @@ async function openImportDialog() {
     const processedData = rawData.map((item: any) => {
       const existing = db.contacts.find((c: any) => c.lineId === item.id)
       
-      // If exact match (ID & Name), mark as 'skip'
-      if (existing && existing.name === item.name) {
+      // Check if data is exactly the same (Name AND LinkedBots)
+      const isNameSame = existing && existing.name === item.name
+      const isBotsSame = existing && JSON.stringify((existing.linkedBotIds || []).sort()) === JSON.stringify((item.linkedBotIds || []).sort())
+
+      if (isNameSame && isBotsSame) {
         return { ...item, status: 'skip' }
       }
 
       return {
         ...item,
         status: existing ? 'update' : 'new',
+        linkedBotIds: item.linkedBotIds || [],
         existingData: existing
       }
     })
@@ -267,6 +292,8 @@ async function confirmImport() {
       if (index !== -1) {
         db.contacts[index].name = item.name
         // db.contacts[index].code = item.name // DO NOT UPDATE CODE
+        // Update Linked Bots
+        db.contacts[index].linkedBotIds = [...(item.linkedBotIds || [])]
         updatedCount++
       }
     } else if (item.status === 'delete') {
@@ -283,13 +310,14 @@ async function confirmImport() {
         name: item.name,
         code: item.name, // Default code = name
         lineId: item.id,
+        linkedBotIds: [...(item.linkedBotIds || [])],
         type: item.type || 'group'
       })
       addedCount++
     }
   }
   
-  await (window as any).ipcRenderer.invoke('db:save', db)
+  await (window as any).ipcRenderer.invoke('db:save', JSON.parse(JSON.stringify(db)))
   importDialogVisible.value = false
   loadContacts()
   ElMessage.success(`匯入完成：新增 ${addedCount} 筆，更新 ${updatedCount} 筆，移除 ${deletedCount} 筆`)

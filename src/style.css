@@ -1,35 +1,100 @@
+/* Global Styles */
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+  --tech-bg-dark: #0a0a0a;
+  --tech-bg-panel: rgba(20, 20, 20, 0.8);
+  --tech-primary: #06c755;
+  --tech-primary-dim: rgba(6, 199, 85, 0.3);
+  --tech-secondary: #00b900;
+  --tech-text-main: #e0e0e0;
+  --tech-text-dim: #888;
+  --tech-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
   margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  background-color: var(--tech-bg-dark);
+  color: var(--tech-text-main);
+  font-family: "Inter", sans-serif;
+  overflow: hidden; /* Prevent body scroll */
 }
 
 #app {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tech-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tech-primary-dim);
+}
+
+/* Element Plus Overrides */
+.el-message {
+  transform: translateY(
+    50px
+  ) !important; /* Move message down preserving stack */
+  background: rgba(0, 0, 0, 0.9) !important;
+  border: 1px solid var(--tech-primary) !important;
+  box-shadow: 0 0 15px var(--tech-primary-dim) !important;
+  z-index: 10000 !important; /* Ensure it is above TitleBar */
+}
+
+.el-message__content {
+  color: var(--tech-primary) !important;
+  font-family: "Courier New", monospace !important;
+  font-weight: bold !important;
+}
+
+.el-message--success {
+  border-color: var(--tech-secondary) !important;
+}
+.el-message--success .el-message__content {
+  color: var(--tech-secondary) !important;
+}
+
+.el-message--error {
+  border-color: #ff0055 !important;
+}
+.el-message--error .el-message__content {
+  color: #ff0055 !important;
+}
+
+/* Glass Panel Utility */
+.glass-panel {
+  background: var(--tech-bg-panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--tech-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Tech Form Styles */
+.tech-form .el-form-item__label {
+  color: var(--tech-text-dim);
+  font-family: "Courier New", monospace;
+}
+
+.tech-form .el-input__wrapper,
+.tech-form .el-textarea__inner {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 0 0 1px var(--tech-border) inset !important;
+  color: var(--tech-text-main) !important;
+}
+
+.tech-form .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--tech-primary) inset !important;
 }

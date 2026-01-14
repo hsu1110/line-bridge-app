@@ -50,10 +50,21 @@
     <!-- Test Send Dialog -->
     <el-dialog v-model="testDialogVisible" title="測試發送" width="50%" class="tech-dialog">
       <el-form :model="testForm" label-width="100px" class="tech-form">
-        <el-form-item label="發送目標">
-          <el-select v-model="testForm.target_code" placeholder="請選擇目標" style="width: 100%">
+        <el-form-item label="選擇機器人">
+          <el-select v-model="testForm.bot_code" placeholder="請選擇發送的機器人" style="width: 100%" @change="handleBotChange">
             <el-option 
-              v-for="contact in contactList" 
+              v-for="bot in botAccounts" 
+              :key="bot.id" 
+              :label="bot.name" 
+              :value="bot.id" 
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="發送目標">
+          <el-select v-model="testForm.target_code" placeholder="請選擇目標" style="width: 100%" :disabled="!testForm.bot_code">
+            <el-option 
+              v-for="contact in filteredContacts" 
               :key="contact.id" 
               :label="contact.name + ' (' + contact.code + ')'" 
               :value="contact.code" 
@@ -100,8 +111,10 @@ const form = ref<any>({})
 
 // Test Send Related
 const testDialogVisible = ref(false)
-const testForm = ref<any>({ target_code: '', params: {} })
+
+const testForm = ref<any>({ target_code: '', bot_code: '', params: {} })
 const contactList = ref<any[]>([])
+const botAccounts = ref<any[]>([])
 const testParams = ref<string[]>([])
 const sending = ref(false)
 const testResult = ref<any>(null)
@@ -112,6 +125,7 @@ onMounted(loadTemplates)
 async function loadTemplates() {
   const db = await (window as any).ipcRenderer.invoke('db:get-all')
   templates.value = db.templates
+  botAccounts.value = db.settings.accounts || []
 }
 
 function openAddDialog() {
@@ -151,6 +165,25 @@ async function deleteTemplate(id: string) {
   ElMessage.success('DELETED')
 }
 
+import { computed } from 'vue'
+
+const filteredContacts = computed(() => {
+  if (!testForm.value.bot_code) return []
+  
+  // Find the selected bot to get its LineBotId
+  const selectedBot = botAccounts.value.find(b => b.id === testForm.value.bot_code)
+  const botLineId = selectedBot ? selectedBot.lineBotId : ''
+
+  return contactList.value.filter(c => {
+    // If contact has no linked bots, assume it's available to all
+    if (!c.linkedBotIds || c.linkedBotIds.length === 0) return true
+    
+    // Check if linked to Bot UUID OR Bot LineID
+    return c.linkedBotIds.includes(testForm.value.bot_code) || 
+           (botLineId && c.linkedBotIds.includes(botLineId))
+  })
+})
+
 // Test Send Logic
 async function openTestDialog(row: any) {
   // Load contacts for selection
@@ -158,7 +191,15 @@ async function openTestDialog(row: any) {
   contactList.value = db.contacts
   
   currentTemplateCode.value = row.code
-  testForm.value = { target_code: '', params: {} }
+  // Default to first bot if available
+  const defaultBot = botAccounts.value.length > 0 ? botAccounts.value[0].id : ''
+  testForm.value = { target_code: '', bot_code: defaultBot, params: {} }
+  
+  // Auto-select first target
+  if (filteredContacts.value.length > 0) {
+    testForm.value.target_code = filteredContacts.value[0].code
+  }
+
   testResult.value = null
   
   // Parse params from content (e.g. {{machine_id}})
@@ -166,6 +207,16 @@ async function openTestDialog(row: any) {
   testParams.value = matches ? matches.map((m: string) => m.replace(/{{|}}/g, '').trim()) : []
   
   testDialogVisible.value = true
+}
+
+
+
+function handleBotChange() {
+  testForm.value.target_code = '' // Reset target when bot changes
+  // Auto-select first target
+  if (filteredContacts.value.length > 0) {
+    testForm.value.target_code = filteredContacts.value[0].code
+  }
 }
 
 async function sendTestMessage() {
@@ -184,7 +235,9 @@ async function sendTestMessage() {
     const payload = {
       target_code: testForm.value.target_code,
       template_code: currentTemplateCode.value,
-      params: testForm.value.params
+
+      params: testForm.value.params,
+      bot_code: testForm.value.bot_code // Pass selected bot
     }
     
     const config = {

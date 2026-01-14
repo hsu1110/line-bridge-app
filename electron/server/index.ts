@@ -90,7 +90,9 @@ export function startServer(): Promise<void> {
           // Handle Follow (Add Friend)
           if (event.type === 'follow') {
             const userId = event.source.userId
-            const profile = await getProfile(userId)
+            // Use destination (Bot ID) to get profile using the correct bot token
+            const destination = req.body.destination
+            const profile = await getProfile(userId, destination)
             const displayName = profile?.displayName || 'Unknown User'
             
             const existing = contacts.find(c => c.lineId === userId)
@@ -118,7 +120,8 @@ export function startServer(): Promise<void> {
              // We care about BOT joining a group.
              if (event.type === 'join') {
                const groupId = event.source.groupId
-               const summary = await getGroupSummary(groupId)
+               const destination = req.body.destination
+               const summary = await getGroupSummary(groupId, destination)
                const groupName = summary?.groupName || 'Unknown Group'
 
                const existing = contacts.find(c => c.lineId === groupId)
@@ -189,12 +192,13 @@ export function startServer(): Promise<void> {
 
     // Send Message API
     app.post('/api/send', apiKeyAuth, async (req, res) => {
-      const { target_code, template_code, params, to, message } = req.body
+      const { target_code, template_code, params, to, message, bot_code } = req.body
       const logId = uuidv4()
       const timestamp = new Date().toISOString()
       let finalContent = ''
       let targetLineId = ''
       let targetCodeForLog = target_code || 'DIRECT'
+      let botId: string | undefined = undefined
 
       try {
         // 1. Resolve Target
@@ -239,9 +243,23 @@ export function startServer(): Promise<void> {
           throw new Error('Missing template_code or message')
         }
 
+        // 3. Resolve Bot
+        if (bot_code) {
+           // bot_code can be the Bot ID (U...) or the Bot Name or the @BasicID
+           const settings = getSettings()
+           const account = settings.accounts?.find(a => a.id === bot_code || a.name === bot_code || a.lineBotId === bot_code)
+           if (account) {
+             botId = account.id
+           } else {
+             throw new Error(`Bot not found: ${bot_code}`)
+           }
+        } else {
+           throw new Error('Missing bot_code. Please specify which bot to use.')
+        }
+
         // 3. Send to LINE
         const lineMessage = { type: 'text', text: finalContent }
-        await pushMessage(targetLineId, [lineMessage])
+        await pushMessage(targetLineId, [lineMessage], botId)
 
         // 4. Log Success
         await addLog({
@@ -250,7 +268,8 @@ export function startServer(): Promise<void> {
           targetCode: targetCodeForLog,
           templateCode: template_code,
           content: finalContent,
-          status: 'success'
+          status: 'success',
+          botId: botId
         })
 
         res.json({ success: true, logId })
@@ -266,7 +285,8 @@ export function startServer(): Promise<void> {
           templateCode: template_code,
           content: finalContent || 'Error before content generation',
           status: 'failed',
-          error: error.message
+          error: error.message,
+          botId: botId
         })
 
         res.status(500).json({ success: false, error: error.message })

@@ -3,12 +3,27 @@ import { getSettings } from '../store/db'
 
 const LINE_API_BASE = 'https://api.line.me/v2/bot'
 
-export async function pushMessage(to: string, messages: any[]) {
+/**
+ * Helper to get token for a specific bot or default to the first one
+ */
+function getBotToken(botId?: string): string | null {
   const settings = getSettings()
-  const token = settings.channelAccessToken
+  if (!settings.accounts || settings.accounts.length === 0) return null
+  
+  if (botId) {
+    const account = settings.accounts.find(a => a.id === botId || a.lineBotId === botId)
+    return account ? account.channelAccessToken : null
+  }
+  
+  return null
+}
+
+export async function pushMessage(to: string, messages: any[], botId?: string) {
+  const settings = getSettings()
+  const token = getBotToken(botId)
 
   if (!token) {
-    throw new Error('Channel Access Token is not set')
+    throw new Error('Channel Access Token is not set for the specified bot')
   }
 
   const proxyConfig = settings.proxy ? {
@@ -48,9 +63,9 @@ export async function pushMessage(to: string, messages: any[]) {
   }
 }
 
-export async function getProfile(userId: string) {
+export async function getProfile(userId: string, botId?: string) {
   const settings = getSettings()
-  const token = settings.channelAccessToken
+  const token = getBotToken(botId)
 
   if (!token) return null
 
@@ -78,9 +93,9 @@ export async function getProfile(userId: string) {
   }
 }
 
-export async function getGroupSummary(groupId: string) {
+export async function getGroupSummary(groupId: string, botId?: string) {
   const settings = getSettings()
-  const token = settings.channelAccessToken
+  const token = getBotToken(botId)
 
   if (!token) return null
 
@@ -108,9 +123,9 @@ export async function getGroupSummary(groupId: string) {
   }
 }
 
-export async function getQuota() {
+export async function getQuota(botId?: string) {
   const settings = getSettings()
-  const token = settings.channelAccessToken
+  const token = getBotToken(botId)
 
   if (!token) return null
 
@@ -138,9 +153,9 @@ export async function getQuota() {
   }
 }
 
-export async function getQuotaConsumption() {
+export async function getQuotaConsumption(botId?: string) {
   const settings = getSettings()
-  const token = settings.channelAccessToken
+  const token = getBotToken(botId)
 
   if (!token) return null
 

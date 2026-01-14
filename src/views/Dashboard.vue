@@ -2,7 +2,7 @@
   <div class="dashboard-container">
     <!-- Top Row: Key Metrics -->
     <el-row :gutter="20" class="mb-4">
-      <el-col :span="8">
+      <el-col :span="12">
         <div class="tech-card glass-panel">
           <div class="card-header">
             <span class="header-text">服務狀態</span>
@@ -17,7 +17,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="12">
         <div class="tech-card glass-panel">
           <div class="card-header">
             <span class="header-text">今日發送量</span>
@@ -28,19 +28,37 @@
             <div class="tech-label">MESSAGES SENT</div>
           </div>
         </div>
-      </el-col>    
-      <el-col :span="8">
+      </el-col>
+    </el-row>
+
+    <!-- Middle Row: Quota Monitoring -->
+    <el-row :gutter="20" class="mb-4">
+      <el-col :span="24">
         <div class="tech-card glass-panel">
           <div class="card-header">
-            <span class="header-text">本月額度使用量</span>
+            <span class="header-text">機器人額度監控</span>
             <div class="header-line"></div>
+            <el-button type="primary" link size="small" @click="fetchQuotas" :loading="loadingQuotas">
+              <el-icon><Refresh /></el-icon>
+            </el-button>
           </div>
-          <div class="card-content">
-            <div class="digital-number" :class="getQuotaColor(quotaInfo)">
-              <span v-if="quotaInfo.type === 'none'" style="font-size: 36px">吃到飽</span>
-              <span v-else>{{ quotaInfo.totalUsage }} / {{ quotaInfo.value }}</span>
+          <div class="quota-list">
+            <div v-if="botQuotas.length === 0" class="no-data-small">No Bots Configured</div>
+            <div v-else v-for="(bot, index) in botQuotas" :key="index" class="quota-item">
+              <div class="quota-info">
+                <span class="quota-name">{{ bot.name }}</span>
+                <span class="quota-value" :class="getQuotaColor(bot)">
+                  <span v-if="bot.type === 'none'">∞</span>
+                  <span v-else>{{ bot.totalUsage }} / {{ bot.value }}</span>
+                </span>
+              </div>
+              <div class="progress-bar-bg" v-if="bot.type !== 'none'">
+                <div class="progress-bar-fill" :style="{ width: Math.min((bot.totalUsage / bot.value) * 100, 100) + '%', backgroundColor: getQuotaColorHex(bot) }"></div>
+              </div>
+              <div class="progress-bar-bg" v-else>
+                 <div class="progress-bar-fill" style="width: 100%; background-color: var(--tech-primary); opacity: 0.3;"></div>
+              </div>
             </div>
-            <div class="tech-label">MONTHLY QUOTA</div>
           </div>
         </div>
       </el-col>
@@ -95,10 +113,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { Refresh } from '@element-plus/icons-vue'
 
 const port = ref(3000)
 const todayCount = ref(0)
-const quotaInfo = ref({ type: 'limited', value: 0, totalUsage: 0 })
+const botQuotas = ref<any[]>([])
+const loadingQuotas = ref(false)
 const templateStats = ref<any[]>([])
 const recentLogs = ref<any[]>([])
 
@@ -112,9 +132,8 @@ onMounted(async () => {
   // 1. Today Count
   todayCount.value = todayLogs.length
 
-  // 2. Message Quota
-  const quota = await (window as any).ipcRenderer.invoke('line:get-quota')
-  quotaInfo.value = quota
+  // 2. Message Quota (Per Bot)
+  await fetchQuotas()
 
   // 3. Template Stats
   const statsMap = new Map()
@@ -143,14 +162,49 @@ const formatTime = (isoString: string) => {
 }
 
 const getQuotaColor = (info: any) => {
-  if (info.type === 'none') return '' // Default style (Cyan)
+  if (info.type === 'none') return ''
   const usage = info.totalUsage
   const limit = info.value
   if (limit === 0) return 'text-danger'
   const rate = usage / limit
   if (rate >= 0.9) return 'text-danger'
   if (rate >= 0.7) return 'text-warning'
-  return '' // Default style (Cyan)
+  return ''
+}
+
+const getQuotaColorHex = (info: any) => {
+  if (info.type === 'none') return '#06c755'
+  const usage = info.totalUsage
+  const limit = info.value
+  if (limit === 0) return '#f87171'
+  const rate = usage / limit
+  if (rate >= 0.9) return '#f87171'
+  if (rate >= 0.7) return '#facc15'
+  return '#06c755'
+}
+
+const fetchQuotas = async () => {
+  loadingQuotas.value = true
+  try {
+    const db = await (window as any).ipcRenderer.invoke('db:get-all')
+    const accounts = db.settings.accounts || []
+    const quotaPromises = accounts.map(async (acc: any) => {
+      try {
+        const q = await (window as any).ipcRenderer.invoke('line:get-quota', acc.id)
+        return {
+          name: acc.name,
+          type: q.type,
+          value: q.value,
+          totalUsage: q.totalUsage
+        }
+      } catch (e) {
+        return { name: acc.name, type: 'error', value: 0, totalUsage: 0 }
+      }
+    })
+    botQuotas.value = await Promise.all(quotaPromises)
+  } finally {
+    loadingQuotas.value = false
+  }
 }
 </script>
 
@@ -373,5 +427,48 @@ const getQuotaColor = (info: any) => {
   color: var(--tech-text-dim);
   padding: 20px;
   font-family: 'Courier New', monospace;
+}
+
+.quota-list {
+  width: 100%;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.quota-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.quota-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 12px;
+}
+
+.quota-name {
+  font-family: 'Courier New', monospace;
+  color: var(--tech-text-main);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.quota-value {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: var(--tech-primary);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.no-data-small {
+  font-size: 12px;
+  color: var(--tech-text-dim);
 }
 </style>

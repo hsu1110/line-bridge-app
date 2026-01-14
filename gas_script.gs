@@ -1,34 +1,33 @@
 // ---------------------------------------------------------
-// LINE Message Bridge - GAS Helper (Smart Binding Version)
-// 功能 1: 接收 LINE Webhook
-//   - Follow/Join: 自動抓取名稱並綁定
-//   - Message: 處理「系統綁定」指令 (改名用)
-// 功能 2: 提供 API (doGet) 讓 Electron 匯入名單
+// LINE Message Bridge - GAS Helper (Auto-Register Version)
 // ---------------------------------------------------------
 
-// ⚠️ 請先至「專案設定」->「指令碼屬性」新增屬性：
-// 屬性名稱: CHANNEL_ACCESS_TOKEN
-// 屬性值: 您的 LINE Channel Access Token
-var scriptProperties = PropertiesService.getScriptProperties();
-var CHANNEL_ACCESS_TOKEN = scriptProperties.getProperty("CHANNEL_ACCESS_TOKEN");
-
+// 設定
 var SHEET_ID = ""; // 如果留空，會自動尋找或建立一個名為 "LineBotData" 的試算表
-var SHEET_NAME = "Contacts";
+var SHEET_NAME_CONTACTS = "Contacts";
+var SHEET_NAME_CONFIG = "BotConfig";
 
 // ---------------------------------------------------------
 // 1. 處理 LINE Webhook (doPost)
 // ---------------------------------------------------------
 function doPost(e) {
-  if (!CHANNEL_ACCESS_TOKEN) {
-    console.error("尚未設定 CHANNEL_ACCESS_TOKEN");
-    return ContentService.createTextOutput("Error: Token not set");
-  }
-
   var msg = JSON.parse(e.postData.contents);
   var events = msg.events;
+  var destination = msg.destination; // Bot User ID
 
   if (!events || events.length === 0) {
     return ContentService.createTextOutput("OK");
+  }
+
+  // 取得該 Bot 的 Token (若無則自動註冊)
+  var token = getAndRegisterBotToken(destination);
+
+  if (!token) {
+    // Token 未設定 (可能是剛自動註冊的新 Bot)
+    // 無法回覆訊息，直接結束
+    return ContentService.createTextOutput(
+      "New Bot Registered. Please set Token in Sheet."
+    );
   }
 
   for (var i = 0; i < events.length; i++) {
@@ -36,33 +35,35 @@ function doPost(e) {
     var replyToken = event.replyToken;
     var source = event.source;
 
-    // A. 處理加好友 (Follow) -> 自動抓取個人資料
+    // A. 處理加好友 (Follow)
     if (event.type === "follow") {
       var userId = source.userId;
-      var profile = getProfile(userId);
+      var profile = getProfile(userId, token);
       var displayName = profile ? profile.displayName : "Unknown User";
 
-      saveToSheet(displayName, userId, "user");
+      saveToSheet(displayName, userId, "user", destination);
       replyMessage(
         replyToken,
         "🎉 歡迎 " +
           displayName +
-          "！\n\n我是您的訊息通知小幫手 🤖\n已自動為您完成綁定。\n\n💡 若想更改顯示名稱，請輸入：\n「系統綁定：您的暱稱」"
+          "！\n\n我是您的訊息通知小幫手 🤖\n已自動為您完成綁定。\n\n💡 若想更改顯示名稱，請輸入：\n「系統綁定：您的暱稱」",
+        token
       );
     }
 
-    // B. 處理加入群組 (Join) -> 自動抓取群組資料
+    // B. 處理加入群組 (Join)
     if (event.type === "join") {
       var groupId = source.groupId;
-      var summary = getGroupSummary(groupId);
+      var summary = getGroupSummary(groupId, token);
       var groupName = summary ? summary.groupName : "Unknown Group";
 
-      saveToSheet(groupName, groupId, "group");
+      saveToSheet(groupName, groupId, "group", destination);
       replyMessage(
         replyToken,
         "大家好 👋 我是通知小幫手！\n\n已綁定本群組：" +
           groupName +
-          "\n\n💡 若需更改群組顯示名稱，請輸入：\n「系統綁定：新名稱」"
+          "\n\n💡 若需更改群組顯示名稱，請輸入：\n「系統綁定：新名稱」",
+        token
       );
     }
 
@@ -78,10 +79,11 @@ function doPost(e) {
         var type = source.type;
 
         if (id) {
-          saveToSheet(customName, id, type);
+          saveToSheet(customName, id, type, destination);
           replyMessage(
             replyToken,
-            "✅ 更新成功！\n名稱：" + customName + "\nID：" + id
+            "✅ 更新成功！\n名稱：" + customName + "\nID：" + id,
+            token
           );
         }
       }
@@ -90,13 +92,13 @@ function doPost(e) {
     // D. 處理封鎖/刪除好友 (Unfollow)
     if (event.type === "unfollow") {
       var userId = source.userId;
-      deleteFromSheet(userId);
+      deleteFromSheet(userId, destination);
     }
 
     // E. 處理離開群組 (Leave)
     if (event.type === "leave") {
       var id = source.groupId || source.roomId;
-      deleteFromSheet(id);
+      deleteFromSheet(id, destination);
     }
   }
 
@@ -107,7 +109,15 @@ function doPost(e) {
 // 2. 提供 Electron 匯入 API (doGet)
 // ---------------------------------------------------------
 function doGet(e) {
-  var data = readFromSheet();
+  var type = e.parameter.type;
+  var data;
+
+  if (type === "config") {
+    data = readConfigFromSheet();
+  } else {
+    data = readFromSheet();
+  }
+
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(
     ContentService.MimeType.JSON
   );
@@ -117,33 +127,60 @@ function doGet(e) {
 // LINE API Helpers
 // ---------------------------------------------------------
 
-function getProfile(userId) {
+function getAndRegisterBotToken(botId) {
+  var sheet = getSheet(SHEET_NAME_CONFIG);
+  var data = sheet.getDataRange().getValues();
+
+  // 1. 嘗試尋找現有 Bot
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2] === botId) {
+      var token = data[i][3];
+      if (!token || token === "PENDING_INPUT") {
+        return null; // 有 ID 但沒 Token
+      }
+      return token;
+    }
+  }
+
+  // 2. 找不到 -> 自動註冊
+  var timestamp = new Date();
+  // 格式: [Timestamp, BotName, BotID, ChannelAccessToken, ChannelSecret]
+  sheet.appendRow([
+    timestamp,
+    "(New Bot)",
+    botId,
+    "PENDING_INPUT",
+    "PENDING_INPUT",
+  ]);
+
+  return null;
+}
+
+function getProfile(userId, token) {
   try {
     var url = "https://api.line.me/v2/bot/profile/" + userId;
     var response = UrlFetchApp.fetch(url, {
-      headers: { Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN },
+      headers: { Authorization: "Bearer " + token },
     });
     return JSON.parse(response.getContentText());
   } catch (e) {
-    console.error("Get Profile Error: " + e);
     return null;
   }
 }
 
-function getGroupSummary(groupId) {
+function getGroupSummary(groupId, token) {
   try {
     var url = "https://api.line.me/v2/bot/group/" + groupId + "/summary";
     var response = UrlFetchApp.fetch(url, {
-      headers: { Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN },
+      headers: { Authorization: "Bearer " + token },
     });
     return JSON.parse(response.getContentText());
   } catch (e) {
-    console.error("Get Group Summary Error: " + e);
     return null;
   }
 }
 
-function replyMessage(replyToken, message) {
+function replyMessage(replyToken, message, token) {
   if (!replyToken) return;
   var url = "https://api.line.me/v2/bot/message/reply";
   var payload = {
@@ -155,13 +192,13 @@ function replyMessage(replyToken, message) {
     UrlFetchApp.fetch(url, {
       headers: {
         "Content-Type": "application/json; charset=UTF-8",
-        Authorization: "Bearer " + CHANNEL_ACCESS_TOKEN,
+        Authorization: "Bearer " + token,
       },
       method: "post",
       payload: JSON.stringify(payload),
     });
   } catch (e) {
-    console.error("Reply Error: " + e);
+    // ignore
   }
 }
 
@@ -169,7 +206,7 @@ function replyMessage(replyToken, message) {
 // Sheet Helpers
 // ---------------------------------------------------------
 
-function getSheet() {
+function getSheet(sheetName) {
   var ss;
   if (SHEET_ID) {
     try {
@@ -190,16 +227,26 @@ function getSheet() {
     }
   }
 
-  var sheet = ss.getSheetByName(SHEET_NAME);
+  var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(["Timestamp", "Name", "ID", "Type"]);
+    sheet = ss.insertSheet(sheetName);
+    if (sheetName === SHEET_NAME_CONTACTS) {
+      sheet.appendRow(["Timestamp", "Name", "ID", "Type", "LinkedBotID"]);
+    } else if (sheetName === SHEET_NAME_CONFIG) {
+      sheet.appendRow([
+        "Timestamp",
+        "BotName",
+        "BotID",
+        "ChannelAccessToken",
+        "ChannelSecret",
+      ]);
+    }
   }
   return sheet;
 }
 
-function saveToSheet(name, id, type) {
-  var sheet = getSheet();
+function saveToSheet(name, id, type, linkedBotId) {
+  var sheet = getSheet(SHEET_NAME_CONTACTS);
   var timestamp = new Date();
   var data = sheet.getDataRange().getValues();
 
@@ -208,38 +255,73 @@ function saveToSheet(name, id, type) {
     if (data[i][2] === id) {
       sheet.getRange(i + 1, 2).setValue(name); // Update Name
       sheet.getRange(i + 1, 1).setValue(timestamp);
+
+      var currentLinked = data[i][4] ? String(data[i][4]).split(",") : [];
+      if (linkedBotId && currentLinked.indexOf(linkedBotId) === -1) {
+        currentLinked.push(linkedBotId);
+        sheet.getRange(i + 1, 5).setValue(currentLinked.join(","));
+      }
       return;
     }
   }
   // Append new
-  sheet.appendRow([timestamp, name, id, type]);
+  sheet.appendRow([timestamp, name, id, type, linkedBotId]);
 }
 
-function deleteFromSheet(id) {
-  var sheet = getSheet();
+function deleteFromSheet(id, botId) {
+  var sheet = getSheet(SHEET_NAME_CONTACTS);
   var data = sheet.getDataRange().getValues();
 
-  // Iterate backwards to avoid index shifting issues
   for (var i = data.length - 1; i >= 1; i--) {
     if (data[i][2] === id) {
-      // Column C is ID (index 2)
-      sheet.deleteRow(i + 1);
-      // Assuming ID is unique, we can return after deleting.
-      // If you suspect duplicates, remove the return statement.
+      var currentLinked = data[i][4] ? String(data[i][4]).split(",") : [];
+      var index = currentLinked.indexOf(botId);
+
+      if (index > -1) {
+        // Remove only this bot ID
+        currentLinked.splice(index, 1);
+
+        if (currentLinked.length === 0) {
+          // If no bots left, delete the row
+          sheet.deleteRow(i + 1);
+        } else {
+          // Update the list
+          sheet.getRange(i + 1, 5).setValue(currentLinked.join(","));
+        }
+      }
       return;
     }
   }
 }
 
 function readFromSheet() {
-  var sheet = getSheet();
+  var sheet = getSheet(SHEET_NAME_CONTACTS);
   var data = sheet.getDataRange().getValues();
   var result = [];
   for (var i = 1; i < data.length; i++) {
+    var linkedBotIds = data[i][4] ? String(data[i][4]).split(",") : [];
     result.push({
       name: data[i][1],
       id: data[i][2],
       type: data[i][3],
+      linkedBotIds: linkedBotIds,
+    });
+  }
+  return result;
+}
+
+function readConfigFromSheet() {
+  var sheet = getSheet(SHEET_NAME_CONFIG);
+  var data = sheet.getDataRange().getValues();
+  var result = [];
+  // Skip header (row 1)
+  for (var i = 1; i < data.length; i++) {
+    // [Timestamp, BotName, BotID, ChannelAccessToken, ChannelSecret]
+    result.push({
+      name: data[i][1],
+      lineBotId: data[i][2], // BotID in sheet -> lineBotId in app
+      channelAccessToken: data[i][3],
+      secret: data[i][4],
     });
   }
   return result;

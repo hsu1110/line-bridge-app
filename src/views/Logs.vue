@@ -14,6 +14,13 @@
             <span class="tech-time">{{ new Date(scope.row.timestamp).toLocaleString() }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="Bot" width="150">
+          <template #default="scope">
+            <el-tag type="success" effect="plain" class="tech-tag">
+              {{ getBotName(scope.row.botId) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="targetCode" label="目標" width="150" />
         <el-table-column prop="templateCode" label="模板" width="150" />
         <el-table-column prop="content" label="內容" show-overflow-tooltip />
@@ -38,13 +45,21 @@ import { ref, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 
 const logs = ref<any[]>([])
+const botAccounts = ref<any[]>([])
 
 onMounted(loadLogs)
 
 async function loadLogs() {
   const db = await (window as any).ipcRenderer.invoke('db:get-all')
+  botAccounts.value = db.settings.accounts || []
   // Sort logs by timestamp desc
   logs.value = db.logs.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+}
+
+function getBotName(botId?: string) {
+  if (!botId) return 'Default'
+  const bot = botAccounts.value.find(b => b.id === botId || b.lineBotId === botId)
+  return bot ? bot.name : 'Unknown'
 }
 </script>
 
