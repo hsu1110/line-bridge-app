@@ -126,19 +126,16 @@ onUnmounted(() => {
 }
 
 .logo-area {
-  height: 80px;
+  height: 60px;
   display: flex;
   align-items: center;
   padding: 0 20px;
   border-bottom: 1px solid var(--el-border-color-light);
-  background: linear-gradient(180deg, rgba(0, 243, 255, 0.05), transparent);
 }
 
 .logo-icon {
   width: 32px;
   height: 32px;
-  /* background: var(--tech-primary); Removed background */
-  /* color: #fff; Removed color */
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -185,7 +182,6 @@ onUnmounted(() => {
 /* Header */
 .tech-header {
   height: 60px;
-  background: rgba(5, 10, 20, 0.6);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--tech-border);
   display: flex;
