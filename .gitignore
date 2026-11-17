@@ -1,5 +1,5 @@
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +7,49 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Frontend (Node / Vite / TypeScript)
+node_modules/
+dist/
+dist-ssr/
+.vite/
 *.local
-release
-dist-electron
+*.tsbuildinfo
+coverage/
 
-# Editor directories and files
+# Backend (Maven / Spring Boot / 打包與靜態產物)
+backend/target/
+target/
+backend/src/main/resources/static/
+*.jar
+*.war
+*.ear
+backend/local-db*
+local-db*
+*.h2.db
+*.trace.db
+
+# 敏感設定與環境憑證（請改用 *.example.yml 作為範本）
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-prod.yml
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# Editor / IDE / OS
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
 .DS_Store
+Thumbs.db
+desktop.ini
 *.suo
 *.ntvs*
 *.njsproj

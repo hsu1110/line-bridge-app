@@ -1,0 +1,160 @@
+/* 現代企業級亮色管理介面主題 */
+:root {
+  --lb-bg-canvas: #f4f6f9;
+  --lb-bg-surface: #ffffff;
+  --lb-bg-subtle: #f8fafc;
+  --lb-primary: #06c755;
+  --lb-primary-hover: #05b34c;
+  --lb-primary-soft: #ecfdf5;
+  --lb-primary-text: #047857;
+  --lb-text-primary: #0f172a;
+  --lb-text-secondary: #475569;
+  --lb-text-muted: #94a3b8;
+  --lb-border: #e2e8f0;
+  --lb-border-light: #f1f5f9;
+  --lb-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.03);
+  --lb-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --lb-radius: 12px;
+
+  /* Element Plus 主題色覆寫 */
+  --el-color-primary: #06c755;
+  --el-color-primary-light-3: #38d377;
+  --el-color-primary-light-5: #6ee09c;
+  --el-color-primary-light-7: #a7edc3;
+  --el-color-primary-light-8: #c4f3d7;
+  --el-color-primary-light-9: #ecfdf5;
+  --el-color-primary-dark-2: #059e44;
+  --el-border-radius-base: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: var(--lb-bg-canvas);
+  color: var(--lb-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.surface-card {
+  background: var(--lb-bg-surface);
+  border: 1px solid var(--lb-border);
+  border-radius: var(--lb-radius);
+  box-shadow: var(--lb-shadow-sm);
+}
+
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--lb-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.page-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--lb-text-secondary);
+}
+
+.mono-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  background: #f1f5f9;
+  color: #1e293b;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.code-preview-box {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 表格質感調整 */
+.el-table {
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-header-text-color: #475569;
+  --el-table-row-hover-bg-color: #f8fafc;
+  --el-table-border-color: #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.el-dialog {
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+.el-dialog__header {
+  border-bottom: 1px solid var(--lb-border-light);
+  padding: 18px 22px !important;
+  margin-right: 0 !important;
+}
+
+.el-dialog__title {
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  color: var(--lb-text-primary) !important;
+}
+
+.el-dialog__body {
+  padding: 20px 22px !important;
+}
+
+.el-dialog__footer {
+  border-top: 1px solid var(--lb-border-light);
+  padding: 14px 22px !important;
+}
+
+/* 自訂捲軸 */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

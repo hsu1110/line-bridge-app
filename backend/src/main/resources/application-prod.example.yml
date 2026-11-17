@@ -1,0 +1,22 @@
+# 正式區設定檔範本（請複製為 application-prod.yml 並填入正式環境連線與金鑰）
+server:
+  port: ${SERVER_PORT:58080}
+
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@//<ORACLE_HOST>:1521/<SERVICE_NAME_OR_SID>
+    username: <DB_USERNAME>
+    password: <DB_PASSWORD>
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 3
+      connection-test-query: SELECT 1 FROM DUAL
+
+line-bridge:
+  admin:
+    username: admin
+    # 正式區請設定高強度密碼與隨機 32 字元以上 JWT Secret
+    password: <CHANGE_THIS_STRONG_PASSWORD>
+    jwt-secret: <CHANGE_THIS_32_CHARS_PLUS_JWT_SECRET>
+    jwt-expire-hours: 12

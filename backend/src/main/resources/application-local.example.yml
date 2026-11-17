@@ -1,0 +1,16 @@
+# 測試區設定檔範本（請複製為 application-local.yml 並填入實際連線與管理密碼）
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@//<ORACLE_HOST>:1521/<SERVICE_NAME_OR_SID>
+    username: <DB_USERNAME>
+    password: <DB_PASSWORD>
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-test-query: SELECT 1 FROM DUAL
+
+line-bridge:
+  admin:
+    username: admin
+    password: <CHANGE_THIS_PASSWORD>

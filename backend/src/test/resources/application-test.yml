@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:linebridge;MODE=Oracle;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: file:sql/oracle_init.sql
+
+line-bridge:
+  admin:
+    username: admin
+    password: test-password
+    jwt-secret: UnitTestJwtSecretKeyThatIsLongEnoughForHmacSha256!

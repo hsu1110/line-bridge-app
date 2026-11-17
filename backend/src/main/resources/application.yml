@@ -1,0 +1,33 @@
+server:
+  port: ${SERVER_PORT:3000}
+  forward-headers-strategy: native
+
+spring:
+  application:
+    name: line-bridge-server
+  profiles:
+    # 未指定 Profile 時預設啟用 local（測試區），正式環境啟動時帶入 --spring.profiles.active=prod
+    default: local
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+  global-config:
+    db-config:
+      id-type: assign_uuid
+
+line-bridge:
+  line-api-base: https://api.line.me/v2/bot
+  # 呼叫 LINE API 的連線與讀取逾時（毫秒）
+  connect-timeout-ms: 3000
+  read-timeout-ms: 8000
+  # 發送前是否強制驗證聯絡人已綁定該 Bot（建議保持 true）
+  strict-binding-check: true
+  # 允許未設定 API Client 時免驗證（正式環境強烈建議保持 false）
+  allow-anonymous-send: false
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:admin1234}
+    jwt-secret: ${ADMIN_JWT_SECRET:YtecLineBridgeChangeThisJwtSecretKeyTo32CharsPlus!}
+    jwt-expire-hours: 24
