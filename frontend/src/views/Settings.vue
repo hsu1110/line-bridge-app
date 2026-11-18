@@ -82,10 +82,32 @@
           <code class="webhook-url">{{ `${publicOrigin}/line-webhook/${bot.botCode}` }}</code>
           <el-button link type="primary" size="small" @click="copyWebhookUrl(bot.botCode)">複製</el-button>
         </div>
+
+        <div class="welcome-box">
+          <div class="welcome-header">
+            <span class="webhook-label">自動歡迎詞</span>
+            <el-tag
+              :type="bot.welcomeEnabled === 0 ? 'info' : bot.welcomeMessage ? 'success' : 'primary'"
+              size="small"
+              effect="light"
+            >
+              {{
+                bot.welcomeEnabled === 0
+                  ? '已關閉'
+                  : bot.welcomeMessage
+                    ? '自訂內容'
+                    : '系統預設'
+              }}
+            </el-tag>
+          </div>
+          <div v-if="bot.welcomeEnabled !== 0 && bot.welcomeMessage" class="welcome-preview">
+            {{ bot.welcomeMessage }}
+          </div>
+        </div>
       </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '編輯機器人設定' : '新增 LINE 機器人'" width="580px" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '編輯機器人設定' : '新增 LINE 機器人'" width="640px" destroy-on-close>
       <el-form :model="form" label-width="150px">
         <el-form-item label="機器人名稱">
           <el-input v-model="form.name" placeholder="例如：IT 報修通知機器人" />
@@ -118,6 +140,29 @@
         </el-form-item>
         <el-form-item label="啟用狀態">
           <el-switch v-model="form.enabledBool" />
+        </el-form-item>
+        <el-form-item label="自動回覆歡迎詞">
+          <el-switch v-model="form.welcomeEnabledBool" />
+          <span class="hint-inline">加好友或加入群組時使用免費 Reply API 回覆</span>
+        </el-form-item>
+        <el-form-item label="自訂歡迎詞">
+          <div class="welcome-editor">
+            <el-input
+              v-model="form.welcomeMessage"
+              type="textarea"
+              :rows="5"
+              :disabled="!form.welcomeEnabledBool"
+              placeholder="留空將使用系統預設歡迎詞（支援 {{name}}、{{bot_name}} 變數）"
+            />
+            <div class="welcome-helper-row">
+              <span class="welcome-helper-text">
+                可用變數：<code>&#123;&#123;name&#125;&#125;</code>（使用者/群組名稱）、<code>&#123;&#123;bot_name&#125;&#125;</code>（機器人名稱）；留空即用系統預設
+              </span>
+              <el-button link type="primary" size="small" :disabled="!form.welcomeEnabledBool" @click="fillDefaultWelcome">
+                填入預設範本
+              </el-button>
+            </div>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -154,6 +199,8 @@ const form = reactive({
   channelSecret: '',
   quotaLimit: 200,
   enabledBool: true,
+  welcomeEnabledBool: true,
+  welcomeMessage: '',
 })
 
 async function loadBots() {
@@ -180,6 +227,8 @@ function openDialog(row?: any) {
     form.channelSecret = ''
     form.quotaLimit = row.quotaLimit ?? 200
     form.enabledBool = row.enabled === 1
+    form.welcomeEnabledBool = row.welcomeEnabled !== 0
+    form.welcomeMessage = row.welcomeMessage || ''
   } else {
     isEdit.value = false
     editingId.value = ''
@@ -191,8 +240,15 @@ function openDialog(row?: any) {
     form.channelSecret = ''
     form.quotaLimit = 200
     form.enabledBool = true
+    form.welcomeEnabledBool = true
+    form.welcomeMessage = ''
   }
   dialogVisible.value = true
+}
+
+function fillDefaultWelcome() {
+  form.welcomeMessage =
+    '歡迎 {{name}}！我是「{{bot_name}}」。\n\n本帳號為系統自動通知專用，後續將透過此對話發送相關告警與系統通知（僅提供單向推播，不支援訊息回覆）。\n\n如需申請開通或調整通知項目，請與 IT 人員聯繫。'
 }
 
 async function saveBot() {
@@ -207,6 +263,8 @@ async function saveBot() {
       channelSecret: form.channelSecret,
       quotaLimit: form.quotaLimit,
       enabled: form.enabledBool ? 1 : 0,
+      welcomeEnabled: form.welcomeEnabledBool ? 1 : 0,
+      welcomeMessage: form.welcomeMessage,
     }
     if (isEdit.value) {
       await http.put(`/admin/bots/${editingId.value}`, payload)
@@ -392,6 +450,58 @@ onMounted(loadBots)
   margin-left: 10px;
   font-size: 12px;
   color: var(--lb-text-muted);
+}
+
+.welcome-box {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--lb-border-light);
+}
+
+.welcome-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.welcome-preview {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--lb-bg-subtle);
+  border: 1px solid var(--lb-border-light);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--lb-text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 92px;
+  overflow-y: auto;
+}
+
+.welcome-editor {
+  width: 100%;
+}
+
+.welcome-helper-row {
+  margin-top: 6px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.welcome-helper-text {
+  font-size: 12px;
+  color: var(--lb-text-muted);
+  line-height: 1.45;
+}
+
+.welcome-helper-text code {
+  background: #f1f5f9;
+  color: var(--lb-text-secondary);
+  padding: 1px 4px;
+  border-radius: 4px;
 }
 
 .empty-state {

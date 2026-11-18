@@ -13,7 +13,9 @@ public class LineBridgeProperties {
     private int readTimeoutMs = 8000;
     private boolean strictBindingCheck = true;
     private boolean allowAnonymousSend = false;
+    private int dashboardQuotaCacheSeconds = 60;
     private AdminProperties admin = new AdminProperties();
+    private WebhookProperties webhook = new WebhookProperties();
 
     public String getLineApiBase() {
         return lineApiBase;
@@ -63,6 +65,22 @@ public class LineBridgeProperties {
         this.admin = admin;
     }
 
+    public int getDashboardQuotaCacheSeconds() {
+        return dashboardQuotaCacheSeconds;
+    }
+
+    public void setDashboardQuotaCacheSeconds(int dashboardQuotaCacheSeconds) {
+        this.dashboardQuotaCacheSeconds = dashboardQuotaCacheSeconds;
+    }
+
+    public WebhookProperties getWebhook() {
+        return webhook;
+    }
+
+    public void setWebhook(WebhookProperties webhook) {
+        this.webhook = webhook;
+    }
+
     public static class AdminProperties {
         private String username = "admin";
         private String password = "change_me";
@@ -99,6 +117,36 @@ public class LineBridgeProperties {
 
         public void setJwtExpireHours(int jwtExpireHours) {
             this.jwtExpireHours = jwtExpireHours;
+        }
+    }
+
+    public static class WebhookProperties {
+        private int maxBodyBytes = 1048576;
+        private int failedRateLimitPerMin = 20;
+        private int failedPayloadLogMaxChars = 2000;
+
+        public int getMaxBodyBytes() {
+            return maxBodyBytes;
+        }
+
+        public void setMaxBodyBytes(int maxBodyBytes) {
+            this.maxBodyBytes = maxBodyBytes;
+        }
+
+        public int getFailedRateLimitPerMin() {
+            return failedRateLimitPerMin;
+        }
+
+        public void setFailedRateLimitPerMin(int failedRateLimitPerMin) {
+            this.failedRateLimitPerMin = failedRateLimitPerMin;
+        }
+
+        public int getFailedPayloadLogMaxChars() {
+            return failedPayloadLogMaxChars;
+        }
+
+        public void setFailedPayloadLogMaxChars(int failedPayloadLogMaxChars) {
+            this.failedPayloadLogMaxChars = failedPayloadLogMaxChars;
         }
     }
 }

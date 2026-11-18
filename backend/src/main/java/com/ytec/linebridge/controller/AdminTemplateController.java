@@ -1,6 +1,7 @@
 package com.ytec.linebridge.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ytec.linebridge.dto.SendRequest;
 import com.ytec.linebridge.dto.SendResponse;
 import com.ytec.linebridge.dto.TemplatePreviewRequest;
@@ -8,6 +9,7 @@ import com.ytec.linebridge.dto.TemplateSaveRequest;
 import com.ytec.linebridge.entity.Template;
 import com.ytec.linebridge.exception.BusinessException;
 import com.ytec.linebridge.mapper.TemplateMapper;
+import com.ytec.linebridge.mapper.UpdateUtils;
 import com.ytec.linebridge.service.MessageDispatchService;
 import com.ytec.linebridge.service.TemplateEngineService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -85,16 +87,23 @@ public class AdminTemplateController {
         String code = request.getCode().trim();
         ensureUniqueCode(code, id);
 
-        existing.setCode(code);
-        existing.setName(request.getName().trim());
-        existing.setContent(request.getContent());
-        existing.setRequiredVars(templateEngineService.serializeVariables(
+        String requiredVars = templateEngineService.serializeVariables(
                 templateEngineService.extractVariables(request.getContent())
-        ));
-        existing.setDescription(request.getDescription());
-        existing.setUpdatedAt(LocalDateTime.now());
-        templateMapper.updateById(existing);
-        return existing;
+        );
+        String desc = (request.getDescription() == null || request.getDescription().isBlank())
+                ? null
+                : request.getDescription().trim();
+
+        LambdaUpdateWrapper<Template> update = new LambdaUpdateWrapper<Template>()
+                .eq(Template::getId, id)
+                .set(Template::getCode, code)
+                .set(Template::getName, request.getName().trim())
+                .set(Template::getContent, request.getContent())
+                .set(Template::getRequiredVars, requiredVars)
+                .set(Template::getUpdatedAt, LocalDateTime.now());
+        UpdateUtils.setNullableString(update, Template::getDescription, "DESCRIPTION", desc);
+        templateMapper.update(null, update);
+        return templateMapper.selectById(id);
     }
 
     @DeleteMapping("/{id}")

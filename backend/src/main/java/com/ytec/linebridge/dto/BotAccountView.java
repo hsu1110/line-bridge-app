@@ -20,6 +20,8 @@ public class BotAccountView {
     private boolean hasSecret;
     private Integer quotaLimit;
     private Integer enabled;
+    private Integer welcomeEnabled;
+    private String welcomeMessage;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -36,6 +38,8 @@ public class BotAccountView {
         view.channelSecretMasked = maskSecret(entity.getChannelSecret());
         view.quotaLimit = entity.getQuotaLimit();
         view.enabled = entity.getEnabled();
+        view.welcomeEnabled = entity.getWelcomeEnabled() != null ? entity.getWelcomeEnabled() : 1;
+        view.welcomeMessage = entity.getWelcomeMessage();
         view.createdAt = entity.getCreatedAt();
         view.updatedAt = entity.getUpdatedAt();
         return view;
@@ -94,6 +98,14 @@ public class BotAccountView {
 
     public Integer getEnabled() {
         return enabled;
+    }
+
+    public Integer getWelcomeEnabled() {
+        return welcomeEnabled;
+    }
+
+    public String getWelcomeMessage() {
+        return welcomeMessage;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -39,9 +39,6 @@ public class ApiClientInterceptor implements HandlerInterceptor {
         }
 
         String providedKey = request.getHeader("x-api-key");
-        if (providedKey == null || providedKey.isBlank()) {
-            providedKey = request.getParameter("api_key");
-        }
 
         if (providedKey == null || providedKey.isBlank()) {
             if (properties.isAllowAnonymousSend()) {

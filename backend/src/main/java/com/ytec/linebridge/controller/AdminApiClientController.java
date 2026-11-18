@@ -1,10 +1,12 @@
 package com.ytec.linebridge.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ytec.linebridge.dto.ApiClientSaveRequest;
 import com.ytec.linebridge.entity.ApiClient;
 import com.ytec.linebridge.exception.BusinessException;
 import com.ytec.linebridge.mapper.ApiClientMapper;
+import com.ytec.linebridge.mapper.UpdateUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -67,23 +69,27 @@ public class AdminApiClientController {
 
     @PutMapping("/{id}")
     public ApiClient update(@PathVariable String id, @Valid @RequestBody ApiClientSaveRequest request) {
-        ApiClient existing = requireClient(id);
+        requireClient(id);
         String code = request.getClientCode().trim();
         ensureUniqueCode(code, id);
 
-        existing.setClientCode(code);
-        existing.setClientName(request.getClientName().trim());
-        existing.setAllowedBotCodes(trimOrNull(request.getAllowedBotCodes()));
-        existing.setAllowedTemplateCodes(trimOrNull(request.getAllowedTemplateCodes()));
+        LambdaUpdateWrapper<ApiClient> update = new LambdaUpdateWrapper<ApiClient>()
+                .eq(ApiClient::getId, id)
+                .set(ApiClient::getClientCode, code)
+                .set(ApiClient::getClientName, request.getClientName().trim())
+                .set(ApiClient::getUpdatedAt, LocalDateTime.now());
+
+        UpdateUtils.setNullableString(update, ApiClient::getAllowedBotCodes, "ALLOWED_BOT_CODES", trimOrNull(request.getAllowedBotCodes()));
+        UpdateUtils.setNullableString(update, ApiClient::getAllowedTemplateCodes, "ALLOWED_TEMPLATE_CODES", trimOrNull(request.getAllowedTemplateCodes()));
+
         if (request.getRateLimitPerMin() != null) {
-            existing.setRateLimitPerMin(request.getRateLimitPerMin());
+            update.set(ApiClient::getRateLimitPerMin, request.getRateLimitPerMin());
         }
         if (request.getEnabled() != null) {
-            existing.setEnabled(request.getEnabled());
+            update.set(ApiClient::getEnabled, request.getEnabled());
         }
-        existing.setUpdatedAt(LocalDateTime.now());
-        apiClientMapper.updateById(existing);
-        return existing;
+        apiClientMapper.update(null, update);
+        return requireClient(id);
     }
 
     @PostMapping("/{id}/rotate-key")

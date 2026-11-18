@@ -1,6 +1,7 @@
 package com.ytec.linebridge.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ytec.linebridge.dto.ContactSaveRequest;
 import com.ytec.linebridge.dto.ContactView;
 import com.ytec.linebridge.entity.Contact;
@@ -8,6 +9,7 @@ import com.ytec.linebridge.entity.ContactBot;
 import com.ytec.linebridge.exception.BusinessException;
 import com.ytec.linebridge.mapper.ContactBotMapper;
 import com.ytec.linebridge.mapper.ContactMapper;
+import com.ytec.linebridge.mapper.UpdateUtils;
 import com.ytec.linebridge.service.ContactBindingService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -94,16 +96,18 @@ public class AdminContactController {
         String code = trimOrNull(request.getCode());
         ensureUniqueCode(code, id);
 
-        existing.setCode(code);
-        existing.setName(request.getName().trim());
-        existing.setContactType(request.getContactType().trim());
-        existing.setUpdatedAt(LocalDateTime.now());
-        contactMapper.updateById(existing);
+        LambdaUpdateWrapper<Contact> update = new LambdaUpdateWrapper<Contact>()
+                .eq(Contact::getId, id)
+                .set(Contact::getName, request.getName().trim())
+                .set(Contact::getContactType, request.getContactType().trim())
+                .set(Contact::getUpdatedAt, LocalDateTime.now());
+        UpdateUtils.setNullableString(update, Contact::getCode, "CODE", code);
+        contactMapper.update(null, update);
 
         if (request.getLinkedBotIds() != null) {
             bindingService.replaceBindings(id, request.getLinkedBotIds());
         }
-        return ContactView.from(existing, bindingService.getLinkedBotIds(id));
+        return ContactView.from(contactMapper.selectById(id), bindingService.getLinkedBotIds(id));
     }
 
     @DeleteMapping("/{id}")

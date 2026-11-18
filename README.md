@@ -20,7 +20,8 @@ line-bridge-app/
 │       ├── application.yml                # 共用設定（預設 profile: local）
 │       ├── application-local.example.yml  # 本機/測試環境設定範本（複製為 application-local.yml）
 │       └── application-prod.example.yml   # 正式環境設定範本（複製為 application-prod.yml）
-└── LINE_MESSAGING_API_DOC_ZH_TW.md   # LINE Messaging API 參考文件
+├── LINE_MESSAGING_API_DOC_ZH_TW.md   # LINE Messaging API 參考文件
+└── API_INTEGRATION_GUIDE.md          # 外部系統 API 串接操作手冊
 ```
 
 ## 本機開發與建置

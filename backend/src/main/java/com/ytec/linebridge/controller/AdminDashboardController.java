@@ -1,6 +1,7 @@
 package com.ytec.linebridge.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ytec.linebridge.entity.BotAccount;
 import com.ytec.linebridge.entity.SendLog;
 import com.ytec.linebridge.mapper.ApiClientMapper;
@@ -8,21 +9,20 @@ import com.ytec.linebridge.mapper.BotAccountMapper;
 import com.ytec.linebridge.mapper.ContactMapper;
 import com.ytec.linebridge.mapper.SendLogMapper;
 import com.ytec.linebridge.mapper.TemplateMapper;
-import com.ytec.linebridge.service.LineApiService;
+import com.ytec.linebridge.service.BotQuotaCacheService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 管理儀表板總覽與即時額度統計
+ * 管理儀表板總覽與即時額度統計（採用 SQL 聚合統計與額度並行快取）
  */
 @RestController
 @RequestMapping("/api/admin/dashboard")
@@ -33,7 +33,7 @@ public class AdminDashboardController {
     private final TemplateMapper templateMapper;
     private final ApiClientMapper apiClientMapper;
     private final SendLogMapper sendLogMapper;
-    private final LineApiService lineApiService;
+    private final BotQuotaCacheService botQuotaCacheService;
 
     public AdminDashboardController(
             BotAccountMapper botAccountMapper,
@@ -41,77 +41,50 @@ public class AdminDashboardController {
             TemplateMapper templateMapper,
             ApiClientMapper apiClientMapper,
             SendLogMapper sendLogMapper,
-            LineApiService lineApiService) {
+            BotQuotaCacheService botQuotaCacheService) {
         this.botAccountMapper = botAccountMapper;
         this.contactMapper = contactMapper;
         this.templateMapper = templateMapper;
         this.apiClientMapper = apiClientMapper;
         this.sendLogMapper = sendLogMapper;
-        this.lineApiService = lineApiService;
+        this.botQuotaCacheService = botQuotaCacheService;
     }
 
     @GetMapping
-    public Map<String, Object> summary() {
+    public Map<String, Object> summary(@RequestParam(defaultValue = "false") boolean refresh) {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        List<SendLog> todayLogs = sendLogMapper.selectList(
-                new LambdaQueryWrapper<SendLog>().ge(SendLog::getCreatedAt, startOfToday)
-        );
 
-        long todayTotal = todayLogs.size();
-        long todaySuccess = todayLogs.stream().filter(l -> "SUCCESS".equals(l.getStatus())).count();
-        long todayFailed = todayLogs.stream().filter(l -> "FAILED".equals(l.getStatus())).count();
+        // 1. 直接由資料庫聚合今日發送數，避免將大量 CLOB 明細載入記憶體
+        Map<String, Object> periodStats = sendLogMapper.selectPeriodStats(startOfToday);
+        long todayTotal = getLongValue(periodStats, "TODAY_TOTAL");
+        long todaySuccess = getLongValue(periodStats, "TODAY_SUCCESS");
+        long todayFailed = getLongValue(periodStats, "TODAY_FAILED");
 
-        // 統計今日各模板使用次數（前 5 名）
-        Map<String, Long> templateCounts = new HashMap<>();
-        for (SendLog log : todayLogs) {
-            String key = (log.getTemplateCode() != null && !log.getTemplateCode().isBlank())
-                    ? log.getTemplateCode()
-                    : "DIRECT";
-            templateCounts.merge(key, 1L, Long::sum);
-        }
-        List<Map<String, Object>> templateStats = templateCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(5)
-                .map(entry -> {
+        // 2. SQL 統計今日前 5 名模板使用排行
+        List<Map<String, Object>> topRows = sendLogMapper.selectTopTemplateStats(startOfToday);
+        List<Map<String, Object>> templateStats = topRows.stream()
+                .map(row -> {
+                    String name = getStringValue(row, "TEMPLATE_CODE", "DIRECT");
+                    long count = getLongValue(row, "USE_COUNT");
                     Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("name", entry.getKey());
-                    item.put("count", entry.getValue());
-                    item.put("percentage", todayTotal > 0 ? Math.round((entry.getValue() * 100.0) / todayTotal) : 0);
+                    item.put("name", name);
+                    item.put("count", count);
+                    item.put("percentage", todayTotal > 0 ? Math.round((count * 100.0) / todayTotal) : 0);
                     return item;
                 })
                 .toList();
 
-        // 使用 MyBatis-Plus 跨版本分頁查詢最新 6 筆紀錄
+        // 3. 分頁查詢最新 6 筆紀錄
         List<SendLog> recentLogs = sendLogMapper.selectPage(
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 6),
+                new Page<>(1, 6),
                 new LambdaQueryWrapper<SendLog>().orderByDesc(SendLog::getCreatedAt)
         ).getRecords();
 
-        // 各啟用 Bot 的即時額度查詢
+        // 4. 透過快取與非同步執行緒池並行查詢各 Bot 的即時額度
         List<BotAccount> bots = botAccountMapper.selectList(
                 new LambdaQueryWrapper<BotAccount>().orderByAsc(BotAccount::getCreatedAt)
         );
-        List<Map<String, Object>> botQuotas = bots.stream()
-                .sorted(Comparator.comparing(BotAccount::getBotCode))
-                .map(bot -> {
-                    Map<String, Object> quota = bot.getChannelAccessToken() != null && !bot.getChannelAccessToken().isBlank()
-                            ? lineApiService.getQuota(bot.getChannelAccessToken())
-                            : Map.of("type", "none", "value", 0);
-                    Map<String, Object> usage = bot.getChannelAccessToken() != null && !bot.getChannelAccessToken().isBlank()
-                            ? lineApiService.getQuotaConsumption(bot.getChannelAccessToken())
-                            : Map.of("totalUsage", 0);
-
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("id", bot.getId());
-                    row.put("botCode", bot.getBotCode());
-                    row.put("name", bot.getName());
-                    row.put("enabled", bot.getEnabled());
-                    row.put("type", quota.getOrDefault("type", "none"));
-                    row.put("value", quota.getOrDefault("value", bot.getQuotaLimit()));
-                    row.put("totalUsage", usage.getOrDefault("totalUsage", 0));
-                    return row;
-                })
-                .toList();
+        List<Map<String, Object>> botQuotas = botQuotaCacheService.fetchAllBotQuotas(bots, refresh);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("todayTotal", todayTotal);
@@ -125,5 +98,31 @@ public class AdminDashboardController {
         result.put("templateStats", templateStats);
         result.put("recentLogs", recentLogs);
         return result;
+    }
+
+    private long getLongValue(Map<String, Object> map, String expectedKey) {
+        if (map == null || map.isEmpty()) {
+            return 0L;
+        }
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(expectedKey)) {
+                Object val = entry.getValue();
+                return val instanceof Number num ? num.longValue() : 0L;
+            }
+        }
+        return 0L;
+    }
+
+    private String getStringValue(Map<String, Object> map, String expectedKey, String fallback) {
+        if (map == null || map.isEmpty()) {
+            return fallback;
+        }
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(expectedKey)) {
+                Object val = entry.getValue();
+                return val != null ? val.toString() : fallback;
+            }
+        }
+        return fallback;
     }
 }

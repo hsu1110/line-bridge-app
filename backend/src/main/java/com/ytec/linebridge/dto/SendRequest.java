@@ -1,5 +1,6 @@
 package com.ytec.linebridge.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Map;
@@ -10,14 +11,17 @@ import java.util.Map;
 public class SendRequest {
 
     @JsonProperty("bot_code")
+    @JsonAlias("botCode")
     private String botCode;
 
     @JsonProperty("target_code")
+    @JsonAlias("targetCode")
     private String targetCode;
 
     private String to;
 
     @JsonProperty("template_code")
+    @JsonAlias("templateCode")
     private String templateCode;
 
     private String message;

@@ -19,6 +19,8 @@ public class BotSaveRequest {
     private String channelSecret;
     private Integer quotaLimit;
     private Integer enabled;
+    private Integer welcomeEnabled;
+    private String welcomeMessage;
 
     public String getBotCode() {
         return botCode;
@@ -82,5 +84,21 @@ public class BotSaveRequest {
 
     public void setEnabled(Integer enabled) {
         this.enabled = enabled;
+    }
+
+    public Integer getWelcomeEnabled() {
+        return welcomeEnabled;
+    }
+
+    public void setWelcomeEnabled(Integer welcomeEnabled) {
+        this.welcomeEnabled = welcomeEnabled;
+    }
+
+    public String getWelcomeMessage() {
+        return welcomeMessage;
+    }
+
+    public void setWelcomeMessage(String welcomeMessage) {
+        this.welcomeMessage = welcomeMessage;
     }
 }

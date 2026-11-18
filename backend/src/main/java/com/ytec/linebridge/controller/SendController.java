@@ -39,8 +39,9 @@ public class SendController {
     }
 
     @GetMapping("/jobs/{jobId}")
-    public SendLog getJob(@PathVariable String jobId) {
-        return dispatchService.getJob(jobId);
+    public SendLog getJob(@PathVariable String jobId, HttpServletRequest httpRequest) {
+        ApiClient client = (ApiClient) httpRequest.getAttribute(ApiClientInterceptor.ATTR_API_CLIENT);
+        return dispatchService.getJob(jobId, client);
     }
 
     private String resolveClientIp(HttpServletRequest request) {

@@ -14,6 +14,7 @@ import com.ytec.linebridge.mapper.BotAccountMapper;
 import com.ytec.linebridge.mapper.ContactMapper;
 import com.ytec.linebridge.mapper.SendLogMapper;
 import com.ytec.linebridge.mapper.TemplateMapper;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class MessageDispatchService {
+
+    private static final int LINE_MAX_TEXT_LENGTH = 5000;
 
     private final BotAccountMapper botAccountMapper;
     private final ContactMapper contactMapper;
@@ -66,6 +69,12 @@ public class MessageDispatchService {
 
         TargetInfo target = resolveTarget(request.getTargetCode(), request.getTo(), bot, isAdminTest);
         String finalContent = resolveContent(request);
+        if (finalContent.length() > LINE_MAX_TEXT_LENGTH) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "訊息長度不可超過 " + LINE_MAX_TEXT_LENGTH + " 字元（目前為 " + finalContent.length() + " 字元）"
+            );
+        }
 
         String jobId = UUID.randomUUID().toString();
         String retryKey = UUID.randomUUID().toString();
@@ -88,8 +97,18 @@ public class MessageDispatchService {
 
         boolean runAsync = !Boolean.FALSE.equals(request.getAsync()) && !isAdminTest;
         if (runAsync) {
-            asyncSendExecutor.executeAsync(jobId, bot.getChannelAccessToken(), target.lineId(), finalContent, retryKey);
-            return SendResponse.queued(jobId, finalContent);
+            try {
+                asyncSendExecutor.executeAsync(jobId, bot.getChannelAccessToken(), target.lineId(), finalContent, retryKey);
+                return SendResponse.queued(jobId, finalContent);
+            } catch (TaskRejectedException ex) {
+                // 非同步佇列已滿時立即更新紀錄為 FAILED，避免任務永遠卡在 QUEUED
+                SendLog failed = new SendLog();
+                failed.setId(jobId);
+                failed.setStatus("FAILED");
+                failed.setErrorMessage("非同步發送佇列已滿，請求被拒絕");
+                sendLogMapper.updateById(failed);
+                throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "目前發送佇列忙碌中，請稍後再試");
+            }
         } else {
             try {
                 asyncSendExecutor.executeSync(jobId, bot.getChannelAccessToken(), target.lineId(), finalContent, retryKey);
@@ -100,10 +119,13 @@ public class MessageDispatchService {
         }
     }
 
-    public SendLog getJob(String jobId) {
+    public SendLog getJob(String jobId, ApiClient apiClient) {
         SendLog log = sendLogMapper.selectById(jobId);
         if (log == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "找不到指定的發送任務: " + jobId);
+        }
+        if (apiClient != null && !apiClient.getId().equals(log.getClientId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "無權查詢其他系統的發送任務");
         }
         return log;
     }

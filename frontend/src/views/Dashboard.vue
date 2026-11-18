@@ -5,7 +5,7 @@
         <h2 class="page-heading">系統運作總覽</h2>
         <p class="page-subtitle">即時監控今日訊息發送量、各官方帳號 LINE 額度與模板使用分佈</p>
       </div>
-      <el-button :loading="loading" @click="loadSummary">
+      <el-button :loading="loading" @click="loadSummary(true)">
         <el-icon><Refresh /></el-icon>
         <span>重新整理</span>
       </el-button>
@@ -163,10 +163,12 @@ const summary = ref<DashboardSummary>({
   recentLogs: [],
 })
 
-async function loadSummary() {
+async function loadSummary(forceRefresh = false) {
   loading.value = true
   try {
-    const res = await http.get('/admin/dashboard')
+    const res = await http.get('/admin/dashboard', {
+      params: forceRefresh ? { refresh: true } : undefined,
+    })
     summary.value = res.data
   } catch (err) {
     ElMessage.error(extractErrorMessage(err))
@@ -199,7 +201,7 @@ function formatTime(val: string) {
   return new Date(val).toLocaleString('zh-TW', { hour12: false })
 }
 
-onMounted(loadSummary)
+onMounted(() => loadSummary(false))
 </script>
 
 <style scoped>

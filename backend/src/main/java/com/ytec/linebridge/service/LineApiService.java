@@ -6,17 +6,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 封裝 LINE Messaging API HTTP 呼叫（含 Timeout、Retry-Key 與指數退避重試）
+ * 封裝 LINE Messaging API HTTP 呼叫（採用 JDK HttpClient 連線池與 HTTP/2、Retry-Key 及指數退避重試）
  */
 @Service
 public class LineApiService {
@@ -27,9 +29,14 @@ public class LineApiService {
     private final RestClient restClient;
 
     public LineApiService(LineBridgeProperties properties) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(properties.getConnectTimeoutMs());
-        factory.setReadTimeout(properties.getReadTimeoutMs());
+        // 使用內建連線池且支援 HTTP/2 的 JDK HttpClient，降低高頻推播時重複建立 TLS 連線的開銷
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .connectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(Duration.ofMillis(properties.getReadTimeoutMs()));
         this.restClient = RestClient.builder()
                 .baseUrl(properties.getLineApiBase())
                 .requestFactory(factory)

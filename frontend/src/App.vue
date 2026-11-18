@@ -6,10 +6,7 @@
     <aside class="sidebar">
       <div class="brand-header">
         <img src="/LINE_New_App_Icon.png" alt="LINE" class="brand-logo" />
-        <div class="brand-meta">
-          <div class="brand-name">LINE Message Hub</div>
-          <div class="brand-desc">企業模板發送平台</div>
-        </div>
+        <div class="brand-name">LINE Message Hub</div>
       </div>
 
       <nav class="nav-list">
@@ -126,6 +123,7 @@ onUnmounted(() => {
 
 <style scoped>
 .app-shell {
+  --lb-header-height: 52px;
   display: flex;
   height: 100vh;
   width: 100vw;
@@ -143,19 +141,19 @@ onUnmounted(() => {
 }
 
 .brand-header {
-  height: 68px;
+  height: var(--lb-header-height);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 0 18px;
   border-bottom: 1px solid var(--lb-border);
   flex-shrink: 0;
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   object-fit: contain;
 }
 
@@ -164,12 +162,7 @@ onUnmounted(() => {
   font-weight: 700;
   color: var(--lb-text-primary);
   line-height: 1.25;
-}
-
-.brand-desc {
-  font-size: 11.5px;
-  color: var(--lb-text-muted);
-  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .nav-list {
@@ -261,7 +254,7 @@ onUnmounted(() => {
 }
 
 .topbar {
-  height: 68px;
+  height: var(--lb-header-height);
   background: var(--lb-bg-surface);
   border-bottom: 1px solid var(--lb-border);
   padding: 0 28px;
@@ -272,7 +265,7 @@ onUnmounted(() => {
 }
 
 .topbar-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--lb-text-primary);
 }

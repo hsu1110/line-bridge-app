@@ -1,6 +1,7 @@
 package com.ytec.linebridge.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ytec.linebridge.dto.BotAccountView;
 import com.ytec.linebridge.dto.BotSaveRequest;
 import com.ytec.linebridge.entity.BotAccount;
@@ -8,6 +9,8 @@ import com.ytec.linebridge.entity.ContactBot;
 import com.ytec.linebridge.exception.BusinessException;
 import com.ytec.linebridge.mapper.BotAccountMapper;
 import com.ytec.linebridge.mapper.ContactBotMapper;
+import com.ytec.linebridge.mapper.UpdateUtils;
+import com.ytec.linebridge.service.BotQuotaCacheService;
 import com.ytec.linebridge.service.LineApiService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -37,14 +40,17 @@ public class AdminBotController {
     private final BotAccountMapper botAccountMapper;
     private final ContactBotMapper contactBotMapper;
     private final LineApiService lineApiService;
+    private final BotQuotaCacheService botQuotaCacheService;
 
     public AdminBotController(
             BotAccountMapper botAccountMapper,
             ContactBotMapper contactBotMapper,
-            LineApiService lineApiService) {
+            LineApiService lineApiService,
+            BotQuotaCacheService botQuotaCacheService) {
         this.botAccountMapper = botAccountMapper;
         this.contactBotMapper = contactBotMapper;
         this.lineApiService = lineApiService;
+        this.botQuotaCacheService = botQuotaCacheService;
     }
 
     @GetMapping
@@ -77,6 +83,8 @@ public class AdminBotController {
         bot.setChannelSecret(request.getChannelSecret().trim());
         bot.setQuotaLimit(request.getQuotaLimit() != null ? request.getQuotaLimit() : 200);
         bot.setEnabled(request.getEnabled() != null ? request.getEnabled() : 1);
+        bot.setWelcomeEnabled(request.getWelcomeEnabled() != null ? request.getWelcomeEnabled() : 1);
+        bot.setWelcomeMessage(trimOrNull(request.getWelcomeMessage()));
         bot.setCreatedAt(now);
         bot.setUpdatedAt(now);
         botAccountMapper.insert(bot);
@@ -85,29 +93,42 @@ public class AdminBotController {
 
     @PutMapping("/{id}")
     public BotAccountView update(@PathVariable String id, @Valid @RequestBody BotSaveRequest request) {
-        BotAccount existing = requireBot(id);
+        requireBot(id);
         String code = request.getBotCode().trim();
         ensureUniqueBotCode(code, id);
 
-        existing.setBotCode(code);
-        existing.setName(request.getName().trim());
-        existing.setLineBotUserId(trimOrNull(request.getLineBotUserId()));
-        existing.setLineBasicId(trimOrNull(request.getLineBasicId()));
+        LambdaUpdateWrapper<BotAccount> update = new LambdaUpdateWrapper<BotAccount>()
+                .eq(BotAccount::getId, id)
+                .set(BotAccount::getBotCode, code)
+                .set(BotAccount::getName, request.getName().trim())
+                .set(BotAccount::getUpdatedAt, LocalDateTime.now());
+
+        UpdateUtils.setNullableString(update, BotAccount::getLineBotUserId, "LINE_BOT_USER_ID", trimOrNull(request.getLineBotUserId()));
+        UpdateUtils.setNullableString(update, BotAccount::getLineBasicId, "LINE_BASIC_ID", trimOrNull(request.getLineBasicId()));
+
         if (request.getChannelAccessToken() != null && !request.getChannelAccessToken().isBlank()) {
-            existing.setChannelAccessToken(request.getChannelAccessToken().trim());
+            update.set(BotAccount::getChannelAccessToken, request.getChannelAccessToken().trim());
         }
         if (request.getChannelSecret() != null && !request.getChannelSecret().isBlank()) {
-            existing.setChannelSecret(request.getChannelSecret().trim());
+            update.set(BotAccount::getChannelSecret, request.getChannelSecret().trim());
         }
         if (request.getQuotaLimit() != null) {
-            existing.setQuotaLimit(request.getQuotaLimit());
+            update.set(BotAccount::getQuotaLimit, request.getQuotaLimit());
         }
         if (request.getEnabled() != null) {
-            existing.setEnabled(request.getEnabled());
+            update.set(BotAccount::getEnabled, request.getEnabled());
         }
-        existing.setUpdatedAt(LocalDateTime.now());
-        botAccountMapper.updateById(existing);
-        return BotAccountView.from(existing);
+        if (request.getWelcomeEnabled() != null) {
+            update.set(BotAccount::getWelcomeEnabled, request.getWelcomeEnabled());
+        }
+        if (request.getWelcomeMessage() != null) {
+            // 傳入空字串時寫入 SQL NULL，確保能清空並恢復系統預設歡迎詞
+            UpdateUtils.setNullableString(update, BotAccount::getWelcomeMessage, "WELCOME_MESSAGE", trimOrNull(request.getWelcomeMessage()));
+        }
+
+        botAccountMapper.update(null, update);
+        botQuotaCacheService.evict(id);
+        return BotAccountView.from(requireBot(id));
     }
 
     @DeleteMapping("/{id}")
@@ -116,6 +137,7 @@ public class AdminBotController {
         requireBot(id);
         contactBotMapper.delete(new LambdaQueryWrapper<ContactBot>().eq(ContactBot::getBotId, id));
         botAccountMapper.deleteById(id);
+        botQuotaCacheService.evict(id);
         return Map.of("success", true);
     }
 
@@ -146,6 +168,7 @@ public class AdminBotController {
         }
         bot.setUpdatedAt(LocalDateTime.now());
         botAccountMapper.updateById(bot);
+        botQuotaCacheService.evict(id);
         return BotAccountView.from(bot);
     }
 
